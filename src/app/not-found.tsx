@@ -5,6 +5,8 @@ import { Shell } from "@/components/shell";
 import { LostPage } from "@/components/lost-page";
 import "./globals.css";
 
+export const instant = false;
+
 export default async function RootNotFound() {
   const locale = routing.defaultLocale;
   setRequestLocale(locale);
