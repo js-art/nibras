@@ -1,0 +1,1006 @@
+/* Rich Text Editor — structural styles; typography in editor-content-typography.css */
+.rich-text-editor-content {
+  font-family: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+/* Target TipTap's ProseMirror editor directly */
+.rich-text-editor-content .ProseMirror,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) {
+  position: relative;
+  outline: none;
+  min-height: 200px;
+  /* Gutter for block tags (P / H2) — keep in CSS so it survives Tailwind purge */
+  padding-inline-start: 2.75rem !important;
+  padding-inline-end: 1rem !important;
+  /* Room for the round block buttons, which sit just above the first block.
+     Without this they slide under the status bar. */
+  padding-top: 2.25rem !important;
+  padding-bottom: 1.5em !important;
+}
+
+/* Scroll the editor body without clipping the gutter labels */
+.rich-text-editor-wrapper {
+  overflow: visible;
+}
+
+/* Ensure first line is always selectable - no extra top padding */
+.rich-text-editor-content .ProseMirror > p:first-child,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > p:first-child {
+  min-height: 1.5em;
+  cursor: text;
+  margin-top: 0 !important;
+}
+
+/* Ensure first paragraph is always present and clickable */
+.rich-text-editor-content .ProseMirror > p:first-child:empty,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > p:first-child:empty {
+  min-height: 1.5em;
+  cursor: text;
+  margin-top: 0 !important;
+}
+
+/* Prevent images from being first child */
+.rich-text-editor-content .ProseMirror > [data-type='imageWithCaption']:first-child,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > [data-type='imageWithCaption']:first-child {
+  margin-top: 0 !important;
+}
+
+.rich-text-editor-content .ProseMirror:focus,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography):focus {
+  outline: none;
+}
+
+/* Legacy fallback only when typography preset class is missing */
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography):not(.editor-typography) p {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  line-height: 1.7;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography):not(.editor-typography) p:first-child {
+  margin-top: 0.75em;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography):not(.editor-typography) p:last-child {
+  margin-bottom: 0.75em;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography):not(.editor-typography) h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  color: var(--foreground);
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography):not(.editor-typography) h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 0.875em;
+  margin-bottom: 0.5em;
+  color: var(--foreground);
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography):not(.editor-typography) h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 0.875em;
+  margin-bottom: 0.5em;
+  color: var(--foreground);
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography):not(.editor-typography) h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--foreground);
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography):not(.editor-typography) h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography):not(.editor-typography) h6 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+/* Heading scale without requiring .ProseMirror on the same node */
+.rich-text-editor-wrapper .editor-typography--blog h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.rich-text-editor-wrapper .editor-typography--blog h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.rich-text-editor-wrapper .editor-typography--blog h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.rich-text-editor-wrapper .editor-typography--product h1 {
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.rich-text-editor-wrapper .editor-typography--product h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.rich-text-editor-wrapper .editor-typography--product h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+/* Lists - Better styling */
+.rich-text-editor-content ul,
+.rich-text-editor-content ol,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) ul,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) ol {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  padding-left: 1.75em;
+}
+
+.rich-text-editor-content li,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) li {
+  margin-top: 0.375em;
+  margin-bottom: 0.375em;
+  line-height: 1.7;
+}
+
+.rich-text-editor-content ul li,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) ul li {
+  list-style-type: disc;
+}
+
+.rich-text-editor-content ol li,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) ol li {
+  list-style-type: decimal;
+}
+
+/* Blockquote - Modern style */
+.rich-text-editor-content blockquote,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote {
+  border-left: 3px solid #e5e7eb;
+  padding-left: 1em;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  font-style: italic;
+  color: #6b7280;
+  background-color: #dcfce7;
+  padding: 0.75em 1em;
+  border-radius: 0.5rem;
+}
+
+.rich-text-editor-wrapper .ProseMirror.editor-typography.editor-typography--blog blockquote,
+.rich-text-editor-wrapper .ProseMirror.editor-typography.editor-typography--product blockquote {
+  background-color: #dcfce7;
+}
+
+.rich-text-editor-content blockquote .quote-body > :first-child,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote .quote-body > :first-child {
+  margin-top: 0;
+}
+
+.rich-text-editor-content blockquote .quote-body > :last-child,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote .quote-body > :last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-editor-content blockquote .quote-author-field,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote .quote-author-field {
+  display: none;
+}
+
+.rich-text-editor-content blockquote.editor-block--active .quote-author-field,
+.rich-text-editor-content blockquote.quote-author-open .quote-author-field,
+.rich-text-editor-content blockquote:focus-within .quote-author-field,
+.rich-text-editor-content blockquote .quote-author-field:has(.has-author),
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote.editor-block--active .quote-author-field,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote.quote-author-open .quote-author-field,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote:focus-within .quote-author-field,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote .quote-author-field:has(.has-author) {
+  display: block;
+  position: relative;
+  z-index: 8;
+  pointer-events: auto;
+  padding-bottom: 0.45rem;
+}
+
+.rich-text-editor-content blockquote .quote-author-input,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote .quote-author-input {
+  display: block;
+  width: 100%;
+  min-height: 1.7em;
+  margin-top: 0.45rem;
+  padding: 0.2rem 0 0.35rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.85em;
+  line-height: 1.6;
+  outline: none;
+}
+
+.rich-text-editor-content blockquote .quote-author-input::placeholder,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote .quote-author-input::placeholder {
+  color: #6b9080;
+  font-weight: 500;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > blockquote.quote-author-open,
+.rich-text-editor-content .ProseMirror > blockquote.quote-author-open {
+  z-index: 7;
+}
+
+.rich-text-editor-content blockquote.editor-block--active .quote-author-input,
+.rich-text-editor-content blockquote.quote-author-open .quote-author-input,
+.rich-text-editor-content blockquote:focus-within .quote-author-input,
+.rich-text-editor-content blockquote .quote-author-input.has-author,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote.editor-block--active .quote-author-input,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote.quote-author-open .quote-author-input,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote:focus-within .quote-author-input,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) blockquote .quote-author-input.has-author {
+  display: block;
+  position: relative;
+  z-index: 8;
+}
+
+/* Code - Better styling */
+.rich-text-editor-content code,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) code {
+  background-color: #f3f4f6;
+  padding: 0.125em 0.375em;
+  border-radius: 0.25rem;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  font-size: 0.875em;
+  color: #e11d48;
+}
+
+.rich-text-editor-content pre,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+  background-color: #1e293b;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  tab-size: 2;
+  padding: 0.9rem 1rem;
+  border-radius: 0.65rem;
+  border: 1px solid #334155;
+  overflow-x: auto;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  white-space: pre;
+  caret-color: #f8fafc;
+}
+
+.rich-text-editor-content pre code,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre code {
+  direction: ltr;
+  text-align: left;
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 450;
+  letter-spacing: 0;
+  border-radius: 0;
+}
+
+/* Links - Modern style */
+.rich-text-editor-content a,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) a {
+  color: #2563eb;
+  text-decoration: none;
+  border-bottom: 1px solid #93c5fd;
+  transition: all 0.2s;
+}
+
+.rich-text-editor-content a:hover,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) a:hover {
+  color: #1d4ed8;
+  border-bottom-color: #2563eb;
+}
+
+/* Images - Beautiful styling with Tailwind classes */
+.rich-text-editor-content img,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Image container when selected */
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) [data-type='imageWithCaption'],
+.rich-text-editor-content [data-type='imageWithCaption'] {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.rich-text-editor-wrapper .ProseMirror > .react-renderer.node-imageWithCaption,
+.rich-text-editor-content .ProseMirror > .react-renderer.node-imageWithCaption {
+  display: block;
+  width: 100%;
+}
+
+/* Image node view must not clip the block controls that sit above it. */
+.rich-text-editor-wrapper .ProseMirror > .react-renderer.node-imageWithCaption,
+.rich-text-editor-content .ProseMirror > .react-renderer.node-imageWithCaption {
+  overflow: visible;
+  position: relative;
+}
+
+.rich-text-editor-wrapper .ProseMirror > .react-renderer.node-imageWithCaption.editor-block--active,
+.rich-text-editor-content .ProseMirror > .react-renderer.node-imageWithCaption.editor-block--active {
+  z-index: 30;
+}
+
+/* Selected image node styling */
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .ProseMirror-selectednode,
+.rich-text-editor-content .ProseMirror-selectednode {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+  border-radius: 0.75rem;
+}
+
+/* Clicking an image selects the node, not the caption or alignment labels. */
+.rich-text-editor-wrapper .node-imageWithCaption,
+.rich-text-editor-content .node-imageWithCaption,
+.rich-text-editor-wrapper .node-imageWithCaption *,
+.rich-text-editor-content .node-imageWithCaption * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.rich-text-editor-wrapper .node-imageWithCaption ::selection,
+.rich-text-editor-content .node-imageWithCaption ::selection {
+  background: transparent;
+}
+
+.rich-text-editor-wrapper .node-imageWithCaption button[data-align-active='true'],
+.rich-text-editor-content .node-imageWithCaption button[data-align-active='true'] {
+  color: #fff !important;
+  background-color: #0f172a !important;
+}
+
+/* Image with caption figure styling - Tailwind classes handle most styling */
+.rich-text-editor-content figure.image-with-caption,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) figure.image-with-caption {
+  margin-top: 1.5em !important;
+  margin-bottom: 1.5em !important;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) figure[data-align='left'],
+.rich-text-editor-content figure[data-align='left'] {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) figure[data-align='right'],
+.rich-text-editor-content figure[data-align='right'] {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) figure[data-align='center'],
+.rich-text-editor-content figure[data-align='center'] {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Ensure first and last elements always have spacing */
+.rich-text-editor-content .ProseMirror > *:first-child,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > *:first-child {
+  margin-top: 1.5em !important;
+}
+
+.rich-text-editor-content .ProseMirror > *:last-child,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > *:last-child {
+  margin-bottom: 1.5em !important;
+}
+
+/* Ensure images always have proper spacing */
+.rich-text-editor-content .ProseMirror [data-type='imageWithCaption']:first-child,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) [data-type='imageWithCaption']:first-child {
+  margin-top: 1.5em !important;
+}
+
+.rich-text-editor-content .ProseMirror [data-type='imageWithCaption']:last-child,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) [data-type='imageWithCaption']:last-child {
+  margin-bottom: 1.5em !important;
+}
+
+/* Horizontal Rule */
+.rich-text-editor-content hr,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) hr {
+  border: none;
+  border-top: 2px solid #e5e7eb;
+  margin: 1.5em 0;
+}
+
+/* RTL Support. Explicit alignment from the toolbar stays physical left/right. */
+.rich-text-editor-content[dir='rtl'],
+.rich-text-editor-wrapper[dir='rtl'] :is(.ProseMirror, .editor-typography) {
+  text-align: right;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) :is(p, h1, h2, h3, h4, h5, h6, li)[style*='text-align: left'],
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) :is(p, h1, h2, h3, h4, h5, h6, li)[style*='text-align:left'] {
+  text-align: left !important;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) :is(p, h1, h2, h3, h4, h5, h6, li)[style*='text-align: right'],
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) :is(p, h1, h2, h3, h4, h5, h6, li)[style*='text-align:right'] {
+  text-align: right !important;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) :is(p, h1, h2, h3, h4, h5, h6, li)[style*='text-align: center'],
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) :is(p, h1, h2, h3, h4, h5, h6, li)[style*='text-align:center'] {
+  text-align: center !important;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) :is(p, h1, h2, h3, h4, h5, h6, li)[style*='text-align: justify'],
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) :is(p, h1, h2, h3, h4, h5, h6, li)[style*='text-align:justify'] {
+  text-align: justify !important;
+}
+
+.rich-text-editor-content[dir='rtl'] ul,
+.rich-text-editor-content[dir='rtl'] ol,
+.rich-text-editor-wrapper[dir='rtl'] :is(.ProseMirror, .editor-typography) ul,
+.rich-text-editor-wrapper[dir='rtl'] :is(.ProseMirror, .editor-typography) ol {
+  padding-right: 1.75em;
+  padding-left: 0;
+}
+
+.rich-text-editor-content[dir='rtl'] blockquote,
+.rich-text-editor-wrapper[dir='rtl'] :is(.ProseMirror, .editor-typography) blockquote {
+  border-right: 3px solid #e5e7eb;
+  border-left: none;
+  padding-right: 1em;
+  padding-left: 0;
+}
+
+/* Selection & caret */
+.rich-text-editor-content .ProseMirror ::selection,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) ::selection {
+  background-color: color-mix(in srgb, #3b82f6 28%, transparent);
+  color: inherit;
+}
+
+.rich-text-editor-content .ProseMirror,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) {
+  caret-color: #2563eb;
+}
+
+/* Active block — focus strip + gutter label (never on text) */
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > * {
+  position: relative;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h1::before,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h2::before,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h3::before,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h4::before,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h5::before,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h6::before,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > p::before,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > .editor-block--active[data-block-type='paragraph']::before,
+.rich-text-editor-wrapper
+  .ProseMirror
+  > .editor-block--active[data-block-type='blockquote']::before,
+.rich-text-editor-wrapper
+  .ProseMirror
+  > .editor-block--active[data-block-type='codeBlock']::before {
+  position: absolute;
+  inset-inline-start: -2.65rem;
+  top: 0.42em;
+  width: 2rem;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+  transition:
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h1::before {
+  content: 'H1';
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h2::before {
+  content: 'H2';
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h3::before {
+  content: 'H3';
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h4::before {
+  content: 'H4';
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h5::before {
+  content: 'H5';
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h6::before {
+  content: 'H6';
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > p::before {
+  content: 'P';
+  opacity: 0.55;
+}
+.rich-text-editor-wrapper
+  .ProseMirror
+  > .editor-block--active[data-block-type='paragraph']::before,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > p.editor-block--active::before {
+  content: 'P';
+  opacity: 1;
+}
+.rich-text-editor-wrapper
+  .ProseMirror
+  > .editor-block--active[data-block-type='blockquote']::before {
+  content: '❝';
+  font-size: 11px;
+}
+.rich-text-editor-wrapper
+  .ProseMirror
+  > .editor-block--active[data-block-type='codeBlock']::before {
+  content: '</>';
+  font-size: 8px;
+  top: 0.55em;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .editor-block--active::before {
+  color: #4f46e5;
+  opacity: 1;
+}
+
+/* Active block is a highlight only. Changing margin or padding here shoves
+   the blocks above and below, which is the table jump on a neighboring click. */
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .editor-block--active,
+.rich-text-editor-content .ProseMirror .editor-block--active {
+  border-radius: 0.5rem;
+  background-color: rgba(99, 102, 241, 0.07);
+  box-shadow: none;
+  outline: 1px solid rgba(99, 102, 241, 0.14);
+  outline-offset: 0;
+  transition: background-color 0.15s ease;
+}
+
+.rich-text-editor-wrapper .ProseMirror.editor-typography > .tableWrapper.editor-block--active,
+.rich-text-editor-content.ProseMirror.editor-typography > .tableWrapper.editor-block--active {
+  margin-top: 0.75rem;
+  margin-bottom: 1.5rem;
+  margin-inline: 0;
+  padding: 0;
+  outline: none;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.rich-text-editor-wrapper[dir='rtl'] :is(.ProseMirror, .editor-typography) .editor-block--active,
+.rich-text-editor-content[dir='rtl'] :is(.ProseMirror, .editor-typography) .editor-block--active,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography)[dir='rtl'] .editor-block--active,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography).rtl .editor-block--active {
+  box-shadow: none;
+}
+
+/* Code blocks stay a code surface. The active-block wash must not replace it. */
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre.editor-block--active,
+.rich-text-editor-content .ProseMirror pre.editor-block--active {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+  background-color: #1e293b;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  tab-size: 2;
+  padding: 0.9rem 1rem;
+  border-radius: 0.65rem;
+  border: 1px solid #818cf8;
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.45);
+  margin-block: 0.75rem;
+  margin-inline: 0;
+  white-space: pre;
+  caret-color: #f8fafc;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre.editor-block--active > code,
+.rich-text-editor-content .ProseMirror pre.editor-block--active > code {
+  direction: ltr;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre.is-empty > code::before,
+.rich-text-editor-content .ProseMirror pre.is-empty > code::before {
+  content: 'code';
+  /* Keep the hint out of the inline flow so the caret stays on the first character. */
+  float: left;
+  height: 0;
+  color: #94a3b8;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Clickable line above a leading code/quote block and below a trailing one. */
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > .editor-block-edge-slot,
+.rich-text-editor-content .ProseMirror > .editor-block-edge-slot,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > .editor-code-edge-slot,
+.rich-text-editor-content .ProseMirror > .editor-code-edge-slot {
+  display: block;
+  min-height: 1.625em;
+  margin: 0 !important;
+  padding: 0;
+  cursor: text;
+  user-select: none;
+}
+
+/* Insert, move, and delete controls. They sit in the gap around the active block. */
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > .editor-block-controls,
+.rich-text-editor-content .ProseMirror > .editor-block-controls {
+  position: absolute;
+  z-index: 40;
+  height: 0;
+  margin: 0 !important;
+  padding: 0;
+  border: 0;
+  inset-inline-start: 2.75rem;
+  inset-inline-end: 1rem;
+  line-height: 0;
+  overflow: visible;
+  pointer-events: none;
+  user-select: none;
+}
+
+.editor-block-controls__row {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  gap: 0.2rem;
+  pointer-events: none;
+}
+
+.editor-block-controls__row--above {
+  top: var(--block-top, 0px);
+  transform: translate(-50%, calc(-100% - 0.15rem));
+}
+
+.editor-block-controls__row--below {
+  top: var(--block-bottom, 2.5rem);
+  transform: translate(-50%, 0.45rem);
+}
+
+.editor-block-controls button {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+}
+
+.editor-block-controls button:hover:not(:disabled) {
+  color: #4338ca;
+  border-color: #c7d2fe;
+  background: #eef2ff;
+}
+
+.editor-block-controls button[data-block-action='delete']:hover:not(:disabled) {
+  color: #be123c;
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.editor-block-controls button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+/* The automatic paragraph after a code block collapses to 0 height, so the
+   caret cannot land on the line under the block. */
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > p:last-child,
+.rich-text-editor-content .ProseMirror > p:last-child {
+  min-height: 1.625em;
+}
+
+.rich-text-editor-wrapper[dir='rtl'] :is(.ProseMirror, .editor-typography) > pre.editor-block--active[data-block-type='codeBlock']::before,
+.rich-text-editor-content[dir='rtl'] :is(.ProseMirror, .editor-typography) > pre.editor-block--active[data-block-type='codeBlock']::before {
+  inset-inline-start: auto;
+  left: auto;
+  right: -2.65rem;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre .hljs-comment,
+.rich-text-editor-content pre .hljs-comment {
+  color: #94a3b8;
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre .hljs-keyword,
+.rich-text-editor-content pre .hljs-keyword,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre .hljs-selector-tag,
+.rich-text-editor-content pre .hljs-selector-tag {
+  color: #c4b5fd;
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre .hljs-string,
+.rich-text-editor-content pre .hljs-string,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre .hljs-attr,
+.rich-text-editor-content pre .hljs-attr {
+  color: #86efac;
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre .hljs-number,
+.rich-text-editor-content pre .hljs-number,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre .hljs-literal,
+.rich-text-editor-content pre .hljs-literal {
+  color: #fdba74;
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre .hljs-title,
+.rich-text-editor-content pre .hljs-title,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) pre .hljs-function,
+.rich-text-editor-content pre .hljs-function {
+  color: #93c5fd;
+}
+
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h1.editor-block--active,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h2.editor-block--active,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h3.editor-block--active,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h4.editor-block--active,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h5.editor-block--active,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h6.editor-block--active {
+  background-color: rgba(99, 102, 241, 0.09);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-inline-start-width: 1px;
+}
+
+/* Persistent heading structure cues */
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h1 {
+  border-inline-start: 2px solid rgba(99, 102, 241, 0.28);
+  padding-inline-start: 0.65rem;
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h2 {
+  border-inline-start: 2px solid rgba(129, 140, 248, 0.28);
+  padding-inline-start: 0.6rem;
+}
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > h3 {
+  border-inline-start: 2px solid rgba(165, 180, 252, 0.28);
+  padding-inline-start: 0.55rem;
+}
+
+/* Tables - Modern styling with hover controls */
+.rich-text-editor-content table,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) table {
+  border-collapse: collapse;
+  margin: 0;
+  width: 100%;
+  table-layout: auto;
+  overflow: visible;
+  position: relative;
+}
+
+/* TipTap node view. Must not clip the toolbar that sits in the padding above the table. */
+.rich-text-editor-content .ProseMirror > .tableWrapper,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) > .tableWrapper {
+  position: relative;
+  overflow: visible;
+  margin: 0.75rem 0 1.5rem;
+}
+
+.rich-text-editor-wrapper .ProseMirror > .tableWrapper:hover,
+.rich-text-editor-wrapper .ProseMirror > .tableWrapper.editor-block--active,
+.rich-text-editor-wrapper .ProseMirror > .tableWrapper:has([data-table-controls-open]),
+.rich-text-editor-content .ProseMirror > .tableWrapper:hover,
+.rich-text-editor-content .ProseMirror > .tableWrapper.editor-block--active,
+.rich-text-editor-content .ProseMirror > .tableWrapper:has([data-table-controls-open]) {
+  z-index: 30;
+}
+
+.rich-text-editor-content .ProseMirror .table-wrapper-container,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container {
+  position: relative;
+  overflow: visible;
+  padding-top: 0;
+}
+
+.rich-text-editor-content .ProseMirror .table-controls,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-controls {
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 20;
+  height: 2.75rem;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rich-text-editor-content .ProseMirror .table-wrapper-container:hover .table-controls,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container:hover .table-controls,
+.rich-text-editor-content .ProseMirror .table-wrapper-container.editor-block--active .table-controls,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container.editor-block--active .table-controls,
+.rich-text-editor-content .ProseMirror .table-wrapper-container:has(.editor-block--active) .table-controls,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container:has(.editor-block--active) .table-controls,
+.rich-text-editor-content .ProseMirror .table-wrapper-container:has(.selectedCell) .table-controls,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container:has(.selectedCell) .table-controls,
+.rich-text-editor-content .ProseMirror .table-wrapper-container[data-table-controls-open] .table-controls,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container[data-table-controls-open] .table-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.rich-text-editor-content .ProseMirror .table-hover-border,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-hover-border {
+  position: absolute;
+  top: 2.75rem;
+  inset-inline: -8px;
+  bottom: -8px;
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  z-index: 0;
+  transition: border-color 0.15s ease;
+}
+
+.rich-text-editor-content .ProseMirror .table-wrapper-container:hover .table-hover-border,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container:hover .table-hover-border,
+.rich-text-editor-content .ProseMirror .table-wrapper-container.editor-block--active .table-hover-border,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container.editor-block--active .table-hover-border,
+.rich-text-editor-content .ProseMirror .table-wrapper-container:has(.editor-block--active) .table-hover-border,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container:has(.editor-block--active) .table-hover-border,
+.rich-text-editor-content .ProseMirror .table-wrapper-container:has(.selectedCell) .table-hover-border,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container:has(.selectedCell) .table-hover-border,
+.rich-text-editor-content .ProseMirror .table-wrapper-container[data-table-controls-open] .table-hover-border,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) .table-wrapper-container[data-table-controls-open] .table-hover-border {
+  border-color: rgba(34, 197, 94, 0.6);
+}
+
+.rich-text-editor-content table td,
+.rich-text-editor-content table th,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) table td,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) table th {
+  min-width: 1em;
+  border: 1px solid var(--table-border, #bec9d6);
+  padding: 0.5em 0.75em;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.rich-text-editor-content table th,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) table th {
+  font-weight: 650;
+  text-align: start;
+  color: #14532d;
+  background-color: #e7f6ec;
+}
+
+.rich-text-editor-content table[data-stripe='even'] tr:nth-child(even) > :is(td, th),
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) table[data-stripe='even'] tr:nth-child(even) > :is(td, th),
+.rich-text-editor-content table[data-stripe='odd'] tr:nth-child(odd) > :is(td, th),
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) table[data-stripe='odd'] tr:nth-child(odd) > :is(td, th) {
+  background-color: rgba(148, 163, 184, 0.22);
+}
+
+.rich-text-editor-content table .selectedCell:after,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) table .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: '';
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(200, 200, 255, 0.4);
+  pointer-events: none;
+}
+
+.rich-text-editor-content table .column-resize-handle,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #3b82f6;
+  pointer-events: none;
+}
+
+/* Task List */
+.rich-text-editor-content ul[data-type='taskList'],
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.rich-text-editor-content ul[data-type='taskList'] li,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.rich-text-editor-content ul[data-type='taskList'] li > label,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) ul[data-type='taskList'] li > label {
+  flex: 0 0 auto;
+  margin-right: 0.5rem;
+  user-select: none;
+}
+
+.rich-text-editor-content ul[data-type='taskList'] li > div,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) ul[data-type='taskList'] li > div {
+  flex: 1 1 auto;
+}
+
+.rich-text-editor-content ul[data-type='taskList'] input[type='checkbox'],
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) ul[data-type='taskList'] input[type='checkbox'] {
+  cursor: pointer;
+  width: 1.25em;
+  height: 1.25em;
+  margin-top: 0.25em;
+}
+
+/* Subscript and Superscript — one direction only, never a highlight */
+.rich-text-editor-content sub,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) sub,
+.rich-text-editor-content sup,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) sup {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+}
+
+.rich-text-editor-content sub,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) sub {
+  top: auto;
+  bottom: -0.28em;
+}
+
+.rich-text-editor-content sup,
+.rich-text-editor-wrapper :is(.ProseMirror, .editor-typography) sup {
+  bottom: auto;
+  top: -0.55em;
+}

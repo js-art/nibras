@@ -1,0 +1,368 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "LahzehFaNum";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/lahzeh/Lahzeh-FaNum-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "LahzehFaNum";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/lahzeh/Lahzeh-FaNum-Bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "LahzehFaNum";
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/lahzeh/Lahzeh-FaNum-ExtraBold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Peyda";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/peyda/PeydaWebFaNum-Regular.woff") format("woff");
+}
+@font-face {
+  font-family: "Peyda";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/peyda/PeydaWebFaNum-Medium.woff") format("woff");
+}
+@font-face {
+  font-family: "Peyda";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/peyda/PeydaWebFaNum-SemiBold.woff") format("woff");
+}
+@font-face {
+  font-family: "Peyda";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/peyda/PeydaWebFaNum-Bold.woff") format("woff");
+}
+@font-face {
+  font-family: "WagzyDisplay";
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: url("/fonts/latin/manrope-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "WagzySans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/latin/dm-sans-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --paper: #e7f2ec;
+  --ink: #12241c;
+  --palm: #0f7a72;
+  --palm-deep: #062421;
+  --gold: #e4c27a;
+  --sand: #e4ece7;
+  --foam: #ffffff;
+  --mist: #3e5248;
+  --line: #d5dfd8;
+
+  /* shadcn tokens (desk DataTable + RichTextEditor from app-multi) */
+  --background: 150 20% 94%;
+  --foreground: 150 33% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 150 33% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 150 33% 10%;
+  --primary: 175 78% 27%;
+  --primary-foreground: 150 30% 93%;
+  --secondary: 150 14% 90%;
+  --secondary-foreground: 150 33% 10%;
+  --muted: 150 14% 90%;
+  --muted-foreground: 150 14% 28%;
+  --accent: 150 14% 90%;
+  --accent-foreground: 150 33% 10%;
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 150 12% 85%;
+  --input: 150 12% 85%;
+  --ring: 175 78% 27%;
+  --radius: 0.5rem;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-palm: var(--palm);
+  --color-palm-deep: var(--palm-deep);
+  --color-gold: var(--gold);
+  --color-sand: var(--sand);
+  --color-foam: var(--foam);
+  --color-mist: var(--mist);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --font-sans: var(--font-arabic);
+  --font-display: var(--font-arabic);
+  --font-arabic: var(--font-arabic);
+}
+
+html {
+  background: #eef3f0;
+  color: var(--ink);
+}
+
+body {
+  min-height: 100%;
+  background: #eef3f0;
+  color: var(--ink);
+  font-family: "Peyda", "WagzySans", sans-serif;
+  line-height: 1.75;
+}
+
+html[lang="en"] body {
+  font-family: "WagzySans", "Peyda", sans-serif;
+}
+
+.font-display {
+  font-family: "LahzehFaNum", "Peyda", "WagzyDisplay", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+html[lang="en"] .font-display {
+  font-family: "WagzyDisplay", "WagzySans", sans-serif;
+}
+
+.maplibregl-ctrl-bottom-right,
+.maplibregl-ctrl-bottom-left {
+  z-index: 1;
+}
+
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-logo {
+  display: none !important;
+}
+
+.sketch-map-frame {
+  contain: layout paint;
+  transform: translateZ(0);
+}
+
+.sketch-map-frame .maplibregl-map {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.sketch-map-frame .maplibregl-canvas-container,
+.sketch-map-frame .maplibregl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.sketch-map-frame .maplibregl-marker {
+  max-width: none;
+}
+
+/* MapLibre positions markers via `transform`. Never let utility hover styles
+   override transform on the marker root (e.g. scale) or handles jump off-map. */
+.sketch-map-frame .maplibregl-marker > * {
+  transform: none !important;
+}
+
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  [data-motion="enter"]:not([data-in="1"]),
+  [data-motion="rise"]:not([data-in="1"]) {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  [data-motion="enter"][data-in="1"] {
+    animation: land-settle 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  [data-motion="rise"][data-in="1"] {
+    animation: land-settle 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  [data-motion="rule"] {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  html[dir="rtl"] [data-motion="rule"] {
+    transform-origin: right;
+  }
+
+  [data-motion="rule"][data-in="1"] {
+    animation: thread-draw 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  [data-motion="wipe"]:not([data-in="1"]) {
+    opacity: 0;
+    transform: translateX(-0.7rem);
+  }
+
+  html[dir="rtl"] [data-motion="wipe"]:not([data-in="1"]) {
+    transform: translateX(0.7rem);
+  }
+
+  [data-motion="wipe"][data-in="1"] {
+    animation: land-wipe 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  html[dir="rtl"] [data-motion="wipe"][data-in="1"] {
+    animation-name: land-wipe-rtl;
+  }
+
+  [data-motion="rail"]:not([data-in="1"]) {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+
+  [data-motion="rail"][data-in="1"] {
+    animation: land-rail 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  [data-motion="settle"]:not([data-in="1"]) {
+    opacity: 0;
+  }
+
+  [data-motion="settle"][data-in="1"] {
+    animation: land-fade 0.95s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  [data-motion="mask"]:not([data-in="1"]) {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  [data-motion="mask"][data-in="1"] {
+    animation: land-mask 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  [data-ink="0"] .bldg path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  [data-ink="1"] .bldg path {
+    stroke-dasharray: 1;
+    animation: bldg-draw 1.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  [data-ink="1"] .bldg path:nth-child(2) { animation-delay: 0.08s; }
+  [data-ink="1"] .bldg path:nth-child(3) { animation-delay: 0.16s; }
+  [data-ink="1"] .bldg path:nth-child(4) { animation-delay: 0.24s; }
+  [data-ink="1"] .bldg path:nth-child(n + 5) { animation-delay: 0.32s; }
+}
+
+@keyframes land-settle {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes thread-draw {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes land-wipe {
+  from {
+    opacity: 0;
+    transform: translateX(-0.7rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes land-wipe-rtl {
+  from {
+    opacity: 0;
+    transform: translateX(0.7rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes land-rail {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes land-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes land-mask {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes bldg-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+

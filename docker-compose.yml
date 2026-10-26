@@ -1,0 +1,16 @@
+# Optional local Postgres if you are not already running one.
+# Match DATABASE_URL in .env — default here: postgresql://postgres:postgres@localhost:5433/nibras_dev
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nibras_dev
+    volumes:
+      - nibras_pg:/var/lib/postgresql/data
+
+volumes:
+  nibras_pg:

@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  displayName  String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// Singleton site content (contact, social, SEO, landing copy).
+model SiteSettings {
+  id        String   @id @default("default")
+  payload   Json
+  updatedAt DateTime @updatedAt
+}
+
+model City {
+  id        String   @id
+  country   String
+  center    Json
+  zoom      Float
+  names     Json
+  updatedAt DateTime @default(now())
+  areas     Area[]
+
+  @@index([updatedAt])
+}
+
+model Area {
+  id        String    @id
+  cityId    String
+  color     String
+  center    Json
+  ring      Json
+  image     String
+  names     Json
+  about     Json
+  updatedAt DateTime  @default(now())
+  city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  projects  Project[]
+
+  @@index([cityId])
+  @@index([updatedAt])
+}
+
+model Developer {
+  id        String    @id
+  names     Json
+  about     Json
+  delivered Int
+  image     String
+  updatedAt DateTime  @default(now())
+  projects  Project[]
+
+  @@index([updatedAt])
+}
+
+model Project {
+  id          String    @id
+  areaId      String
+  developerId String
+  kind        String
+  handover    String
+  startPrice  Float
+  sizeMin     Float
+  sizeMax     Float
+  unitCount   Int
+  currency    String    @default("AED")
+  point       Json
+  ring        Json
+  image       String
+  names       Json
+  about       Json
+  whatsapp    String
+  phone       String
+  units       Json
+  payment     Json
+  updatedAt   DateTime  @default(now())
+  area        Area      @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  developer   Developer @relation(fields: [developerId], references: [id], onDelete: Restrict)
+
+  @@index([areaId])
+  @@index([developerId])
+  @@index([updatedAt])
+}
+
+model Suggestion {
+  id        String   @id
+  kind      String
+  targetId  String
+  order     Int
+  updatedAt DateTime @default(now())
+
+  @@index([order])
+  @@index([updatedAt])
+}
