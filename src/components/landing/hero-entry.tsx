@@ -57,9 +57,14 @@ export function HeroEntry({
           <p className="mt-3 text-sm leading-6 text-[#d5dfd8]">
             {country === "ae" ? t("currencyAe") : t("currencyOm")}
           </p>
-          <p className="mt-8 max-w-sm text-sm leading-7 text-[#e4c27a]/90 lg:mt-auto lg:pt-10">
-            {country === "ae" ? t("mapInvite") : t("photoInvite")}
-          </p>
+          <div className="mt-8 lg:mt-auto lg:pt-10">
+            <Link
+              href="/map"
+              className="inline-flex h-12 items-center rounded-lg bg-[#e4c27a] px-5 text-sm font-semibold text-palm-deep transition hover:bg-white"
+            >
+              {t("mapCta")}
+            </Link>
+          </div>
         </div>
         <div className="group/map relative min-h-[22rem] overflow-hidden rounded-2xl ring-1 ring-white/15 transition duration-500 sm:min-h-[26rem] lg:min-h-0 lg:h-full hover:ring-[#e4c27a]/45">
           {country === "ae" ? (

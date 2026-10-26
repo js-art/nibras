@@ -68,11 +68,11 @@ export function FieldHint({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block text-sm font-medium leading-6 text-ink/80">
-      <span className="inline-flex items-center gap-1.5">
+    <div className="block text-sm font-medium leading-6 text-ink/80">
+      <div className="inline-flex items-center gap-1.5">
         <span>{label}</span>
         {hint ? <HelpIcon hint={hint} /> : null}
-      </span>
+      </div>
       <div
         className={cn(
           "mt-1.5 font-normal",
@@ -84,7 +84,7 @@ export function FieldHint({
         {children}
       </div>
       <FieldError message={error} />
-    </label>
+    </div>
   );
 }
 
