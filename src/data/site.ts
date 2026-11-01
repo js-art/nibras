@@ -76,13 +76,13 @@ function text(value: unknown): LocaleText {
 
 export const seedSite: SiteContent = {
   brand: {
-    name: tx("Jolom", "جولوم", "جولوم"),
+    name: tx("Savat1", "Savat1", "Savat1"),
     logo: "",
   },
   contact: {
     phone: "+971 4 000 0000",
     whatsapp: "971500000000",
-    email: "desk@jolom.ir",
+    email: "desk@savat1.com",
   },
   social: {
     instagram: "https://instagram.com/",
@@ -91,11 +91,11 @@ export const seedSite: SiteContent = {
     telegram: "https://t.me/",
   },
   seo: {
-    siteName: tx("Jolom", "جولوم", "جولوم"),
+    siteName: tx("Savat1", "Savat1", "Savat1"),
     defaultTitle: tx(
-      "Jolom — Off-plan investment map for the Emirates & Oman",
-      "جولوم — خريطة الاستثمار في المشاريع على الخارطة في الإمارات وعُمان",
-      "جولوم — نقشهٔ سرمایه‌گذاری پیش‌فروش در امارات و عمان",
+      "Savat1 — Off-plan investment map for the Emirates & Oman",
+      "Savat1 — خريطة الاستثمار في المشاريع على الخارطة في الإمارات وعُمان",
+      "Savat1 — نقشهٔ سرمایه‌گذاری پیش‌فروش در امارات و عمان",
     ),
     defaultDescription: tx(
       "Read neighbourhoods, starting prices, and project briefs on one map before you commit. Prices stay in local currency.",
@@ -218,9 +218,9 @@ export const seedSite: SiteContent = {
   pages: {
     home: {
       title: tx(
-        "Jolom — Off-plan map for the Emirates & Oman",
-        "جولوم — خريطة المشاريع على الخارطة للإمارات وعُمان",
-        "جولوم — نقشهٔ پیش‌فروش امارات و عمان",
+        "Savat1 — Off-plan map for the Emirates & Oman",
+        "Savat1 — خريطة المشاريع على الخارطة للإمارات وعُمان",
+        "Savat1 — نقشهٔ پیش‌فروش امارات و عمان",
       ),
       description: tx(
         "Explore off-plan neighbourhoods and projects with starting prices and written briefs.",
@@ -231,9 +231,9 @@ export const seedSite: SiteContent = {
     map: {
       title: tx("Interactive off-plan map", "الخريطة التفاعلية", "نقشهٔ تعاملی پیش‌فروش"),
       description: tx(
-        "Search areas, draw a boundary, and open project briefs on the Jolom map.",
-        "ابحث عن المناطق، ارسم حدوداً، وافتح شروح المشاريع على خريطة جولوم.",
-        "محله جستجو کنید، محدوده بکشید و شرح پروژه‌ها را روی نقشهٔ جولوم باز کنید.",
+        "Search areas, draw a boundary, and open project briefs on the Savat1 map.",
+        "ابحث عن المناطق، ارسم حدوداً، وافتح شروح المشاريع على خريطة Savat1.",
+        "محله جستجو کنید، محدوده بکشید و شرح پروژه‌ها را روی نقشهٔ Savat1 باز کنید.",
       ),
     },
     areas: {
@@ -255,9 +255,9 @@ export const seedSite: SiteContent = {
     developers: {
       title: tx("Developers", "المطوّرون", "سازنده‌ها"),
       description: tx(
-        "Studios behind the projects on the Jolom book, with delivery counts and briefs.",
-        "الاستوديوهات خلف مشاريع دفتر جولوم، مع أعداد التسليم والشروح.",
-        "استودیوهای پشت پروژه‌های دفتر جولوم، با تعداد تحویل و شرح.",
+        "Studios behind the projects on the Savat1 book, with delivery counts and briefs.",
+        "الاستوديوهات خلف مشاريع دفتر Savat1، مع أعداد التسليم والشروح.",
+        "استودیوهای پشت پروژه‌های دفتر Savat1، با تعداد تحویل و شرح.",
       ),
     },
   },

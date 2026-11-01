@@ -532,9 +532,9 @@ const rawSeedAtlas = {
       id: "qasr",
       names: tx("Qasr", "قصر", "قصر"),
       about: tx(
-        "Villas, slowly. Palm Shade and Landline Villas are the two they have placed with Jolom.",
-        "فلل، على مهل. ظل النخلة وفلل خط الأرض هما ما أودعه لدى جولوم.",
-        "ویلا، آهسته. سایهٔ نخل و ویلاهای خط زمین همان دو پروژه‌ای است که نزد جولوم گذاشته.",
+        "Villas, slowly. Palm Shade and Landline Villas are the two they have placed with Savat1.",
+        "فلل، على مهل. ظل النخلة وفلل خط الأرض هما ما أودعه لدى Savat1.",
+        "ویلا، آهسته. سایهٔ نخل و ویلاهای خط زمین همان دو پروژه‌ای است که نزد Savat1 گذاشته.",
       ),
       delivered: 1600,
       image: photo("photo-1600585154340-be6161a56a0c"),

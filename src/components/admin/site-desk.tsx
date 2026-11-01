@@ -207,7 +207,7 @@ export function SiteDesk({
       {confirmDialog}
       <DeskSidebar
         desk="site"
-        brand={site.brand.name[locale] || site.brand.name.en || "Jolom"}
+        brand={site.brand.name[locale] || site.brand.name.en || "Savat1"}
         items={(
           [
             ["brand", t("siteBrand")],

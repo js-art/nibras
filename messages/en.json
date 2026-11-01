@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Jolom — read the map before you commit",
-    "description": "Jolom maps off-plan projects across the Emirates and Oman so investors can read a neighbourhood, a price, and a brief before they commit."
+    "title": "Savat1 — read the map before you commit",
+    "description": "Savat1 maps off-plan projects across the Emirates and Oman so investors can read a neighbourhood, a price, and a brief before they commit."
   },
   "nav": {
     "explore": "Explore",
@@ -60,7 +60,7 @@
     "go": "Look"
   },
   "scores": {
-    "kicker": "Jolom score",
+    "kicker": "Savat1 score",
     "title": "Five readings, one number.",
     "lede": "Each project is scored on site, water, energy, air, and light. The number is a reading of the brief, not a promise of return.",
     "site": "Site",
@@ -180,7 +180,7 @@
     "styleFiord": "Fiord"
   },
   "detail": {
-    "score": "Jolom score",
+    "score": "Savat1 score",
     "index": "The five readings",
     "back": "All projects",
     "agent": "For the agent",
@@ -267,7 +267,7 @@
     },
     "qasr": {
       "name": "Qasr Properties",
-      "body": "Villas, slowly. Palm Shade and Landline Villas are the two they have placed with Jolom."
+      "body": "Villas, slowly. Palm Shade and Landline Villas are the two they have placed with Savat1."
     },
     "safa-co": {
       "name": "Safa & Co",
@@ -489,7 +489,7 @@
     "uploading": "Uploading…",
     "uploadReady": "Logo ready — save to publish.",
     "uploadError": "Upload failed. Use PNG, JPG, WebP, SVG, or GIF under 2 MB.",
-    "brandPreviewHint": "Preview of the public header mark. An empty logo uses the default Jolom mark.",
+    "brandPreviewHint": "Preview of the public header mark. An empty logo uses the default Savat1 mark.",
     "siteContact": "Contact & social",
     "siteLanding": "Landing copy",
     "siteSeo": "SEO",

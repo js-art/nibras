@@ -22,7 +22,7 @@ export async function Shell({
   const site = await readSite();
   const isAdmin = await hasAdminSession();
   const localeKey = (locale === "ar" || locale === "fa" ? locale : "en") as "en" | "ar" | "fa";
-  const brandName = site.brand.name[localeKey] || site.brand.name.en || "Jolom";
+  const brandName = site.brand.name[localeKey] || site.brand.name.en || "Savat1";
   const brandLogo = site.brand.logo;
 
   const links = [

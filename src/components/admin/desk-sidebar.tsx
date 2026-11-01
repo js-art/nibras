@@ -21,7 +21,7 @@ const DESKS: { id: DeskId; href: string; labelKey: "deskAtlas" | "deskSite" | "d
   { id: "users", href: `${DESK_PATH}/users`, labelKey: "deskUsers" },
 ];
 
-export function DeskSidebar({ desk, brand = "Jolom", items = [] }: DeskSidebarProps) {
+export function DeskSidebar({ desk, brand = "Savat1", items = [] }: DeskSidebarProps) {
   const t = useTranslations("admin");
   const router = useRouter();
 
