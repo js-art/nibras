@@ -1,0 +1,1 @@
+ALTER TABLE "Project" ADD COLUMN "brochure" JSONB NOT NULL DEFAULT '{}';

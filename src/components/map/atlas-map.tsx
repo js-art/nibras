@@ -28,6 +28,7 @@ import {
   pickPlain,
   pointInRing,
   projectRing,
+  scheduleSteps,
   shortAmount,
   textOf,
   type Area,
@@ -47,6 +48,15 @@ type Rail = "areas" | "search" | "draw";
 type Legend = "area" | "price" | "count";
 
 const empty = { type: "FeatureCollection" as const, features: [] };
+
+function sheetStops(available: number) {
+  const nav = 72;
+  const peek = 72;
+  const map = Math.max(0, available - nav);
+  const full = Math.max(peek + 120, map - 12);
+  const half = Math.round(Math.min(full - 48, Math.max(peek + 160, map * 0.5)));
+  return { peek, half, full };
+}
 
 function heat(t: number, stops: string[]) {
   const index = Math.max(0, Math.min(stops.length - 1, Math.round(t * (stops.length - 1))));
@@ -95,6 +105,13 @@ export function AtlasMap({
   const [aboutOpen, setAboutOpen] = useState(false);
   const [beds, setBeds] = useState<Beds | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
+  const [compact, setCompact] = useState(false);
+  const [snap, setSnap] = useState<"peek" | "half" | "full">("half");
+  const [sheetPx, setSheetPx] = useState<number | null>(null);
+  const [sheetDragging, setSheetDragging] = useState(false);
+  const sheetRef = useRef<HTMLElement>(null);
+  const dragRef = useRef<{ y: number; h: number; moved: boolean } | null>(null);
+  const ignoreClick = useRef(false);
   const [currencyFilter, setCurrencyFilter] = useState<Currency | "all">("all");
 
   const city = atlas.cities.find((item) => item.id === cityId) ?? atlas.cities[0];
@@ -132,10 +149,35 @@ export function AtlasMap({
   }, [rail]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.matchMedia("(min-width: 1024px)").matches) return;
-    setPanelOpen(Boolean(areaId || projectId || rail === "search" || rail === "draw"));
-  }, [areaId, projectId, rail]);
+    const media = window.matchMedia("(max-width: 1023px)");
+    const apply = () => setCompact(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
+
+  useEffect(() => {
+    if (!compact) return;
+    const open = Boolean(areaId || projectId || rail === "search" || rail === "draw");
+    if (!open) return;
+    setPanelOpen(true);
+    setSnap((current) => (current === "peek" ? "half" : current));
+  }, [areaId, projectId, rail, compact]);
+
+  useEffect(() => {
+    if (!compact) return;
+    const parent = sheetRef.current?.parentElement;
+    if (!parent) return;
+    const measure = () => {
+      if (dragRef.current) return;
+      const stops = sheetStops(parent.clientHeight);
+      setSheetPx(stops[snap]);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, [compact, snap]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -421,7 +463,9 @@ export function AtlasMap({
       const active = item.id === hoveredId || item.id === projectId;
       place(
         item.point,
-        `${shortAmount(item.startPrice, item.currency)} ${moneyUnit(item.currency, locale)}`,
+        item.startPrice > 0
+          ? `${shortAmount(item.startPrice, item.currency)} ${moneyUnit(item.currency, locale)}`
+          : t("onRequest"),
         active ? hot : price,
         () => {
           setProjectId(item.id);
@@ -592,10 +636,77 @@ export function AtlasMap({
     setBriefOpen(false);
     if (next === "areas") setAboutOpen(false);
     setPanelOpen(true);
+    setSnap("half");
   }
 
+  function sheetLimits() {
+    return sheetStops(sheetRef.current?.parentElement?.clientHeight ?? 0);
+  }
+
+  function onSheetPointerDown(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!compact) return;
+    const limits = sheetLimits();
+    const current = sheetRef.current?.getBoundingClientRect().height ?? limits.half;
+    dragRef.current = { y: event.clientY, h: current, moved: false };
+    setSheetDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function onSheetPointerMove(event: React.PointerEvent<HTMLButtonElement>) {
+    const session = dragRef.current;
+    if (!session) return;
+    const delta = session.y - event.clientY;
+    if (Math.abs(delta) > 6) session.moved = true;
+    const limits = sheetLimits();
+    setSheetPx(Math.min(limits.full, Math.max(limits.peek, session.h + delta)));
+  }
+
+  function finishSheetDrag(event: React.PointerEvent<HTMLButtonElement>) {
+    const session = dragRef.current;
+    dragRef.current = null;
+    setSheetDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (!session?.moved) return;
+    ignoreClick.current = true;
+    const limits = sheetLimits();
+    const height = Math.min(limits.full, Math.max(limits.peek, session.h + (session.y - event.clientY)));
+    const delta = session.y - event.clientY;
+    const points = [
+      ["peek", limits.peek],
+      ["half", limits.half],
+      ["full", limits.full],
+    ] as const;
+    let target: "peek" | "half" | "full" = points.reduce(
+      (best, point) => (Math.abs(point[1] - height) < Math.abs(limits[best] - height) ? point[0] : best),
+      "half",
+    );
+    if (delta < -56) target = height < limits.half ? "peek" : "half";
+    else if (delta > 56) target = height > limits.half ? "full" : "half";
+    setSnap(target);
+    setPanelOpen(target !== "peek");
+    setSheetPx(limits[target]);
+  }
+
+  function toggleSheet() {
+    if (ignoreClick.current) {
+      ignoreClick.current = false;
+      return;
+    }
+    const next = panelOpen ? "peek" : "half";
+    setSnap(next);
+    setPanelOpen(next !== "peek");
+  }
+
+  const legendTucked = compact && sheetPx != null && sheetPx > (sheetRef.current?.parentElement?.clientHeight ?? Infinity) * 0.62;
+
   return (
-    <div className="relative flex h-full min-h-0 flex-col bg-paper lg:flex-row" dir="ltr">
+    <div
+      className="relative flex h-full min-h-0 flex-col bg-paper lg:flex-row"
+      dir="ltr"
+      style={compact && sheetPx != null ? ({ "--sheet": `${sheetPx}px` } as React.CSSProperties) : undefined}
+    >
       <div className="relative min-h-0 min-w-0 flex-1">
         <div ref={containerRef} className="h-full w-full" />
         {rail === "draw" ? (
@@ -605,9 +716,11 @@ export function AtlasMap({
         ) : null}
         {view === "areas" || view === "search" ? (
           <div
-            className={`absolute left-1/2 z-10 flex w-[min(92vw,22rem)] -translate-x-1/2 flex-col items-center gap-1.5 ${
-              panelOpen ? "bottom-[calc(4.5rem+min(62dvh,32rem)+0.75rem)] lg:bottom-4" : "bottom-[5.75rem] lg:bottom-4"
-            }`}
+            className={`absolute left-1/2 z-10 flex w-[min(92vw,22rem)] -translate-x-1/2 flex-col items-center gap-1.5 lg:bottom-4 ${
+              sheetDragging ? "max-lg:transition-none" : "transition-[bottom,opacity] duration-300 ease-out"
+            } ${
+              legendTucked ? "max-lg:pointer-events-none max-lg:opacity-0" : ""
+            } ${sheetPx != null ? "max-lg:bottom-[calc(var(--sheet)+0.75rem)]" : panelOpen ? "max-lg:bottom-[calc(46%+0.75rem)]" : "max-lg:bottom-[5.25rem]"}`}
           >
             <div className="flex gap-1 rounded-full bg-white/95 p-1 shadow ring-1 ring-ink/10">
               {(
@@ -628,7 +741,7 @@ export function AtlasMap({
                 </HintLabel>
               ))}
             </div>
-            <p className="rounded-full bg-ink/80 px-3 py-1 text-[10px] font-medium text-paper backdrop-blur-sm">
+            <p className="rounded-full bg-ink/80 px-3 py-1 text-[10px] font-medium text-paper backdrop-blur-sm max-lg:hidden lg:block">
               {legend === "area"
                 ? t("legendCaptionArea")
                 : legend === "price"
@@ -649,47 +762,39 @@ export function AtlasMap({
           </Link>
         ) : null}
 
-        <button
-          type="button"
-          className="absolute end-3 top-3 z-30 inline-flex h-10 items-center gap-2 rounded-full bg-white/95 px-3 text-xs font-medium text-ink shadow ring-1 ring-ink/10 lg:hidden"
-          onClick={() => setPanelOpen((value) => !value)}
-          aria-expanded={panelOpen}
-        >
-          <PanelChevron open={panelOpen} />
-          {panelOpen ? t("hidePanel") : t("showPanel")}
-        </button>
-
         <MapStylePicker
           value={styleId}
           onChange={setMapStyle}
-          className="absolute end-3 top-[3.75rem] z-30 lg:top-3"
+          compact={compact}
+          className="absolute end-3 top-3 z-30"
         />
       </div>
 
       <aside
-        className={`z-20 flex min-h-0 flex-col border-ink/10 bg-foam transition-[height] duration-300 ease-out max-lg:absolute max-lg:inset-x-0 max-lg:bottom-[4.5rem] max-lg:overflow-hidden max-lg:rounded-t-3xl max-lg:border-t max-lg:shadow-[0_-18px_40px_-24px_rgba(6,36,33,0.45)] lg:static lg:h-auto lg:w-[min(100%,24rem)] lg:shrink-0 lg:border-s lg:shadow-none ${
-          panelOpen ? "max-lg:h-[min(62dvh,32rem)]" : "max-lg:h-12"
-        }`}
+        ref={sheetRef}
+        className={`z-20 flex min-h-0 flex-col border-ink/10 bg-foam max-lg:absolute max-lg:inset-x-0 max-lg:bottom-[4.5rem] max-lg:overflow-hidden max-lg:rounded-t-3xl max-lg:border-t max-lg:shadow-[0_-18px_40px_-24px_rgba(6,36,33,0.45)] lg:static lg:h-auto lg:w-[min(100%,24rem)] lg:shrink-0 lg:border-s lg:shadow-none ${
+          sheetDragging ? "max-lg:transition-none" : "transition-[height] duration-300 ease-out"
+        } ${sheetPx != null ? "max-lg:h-[var(--sheet)]" : panelOpen ? "max-lg:h-[46%]" : "max-lg:h-[4.5rem]"}`}
       >
         <button
           type="button"
           dir={textDir}
-          className="flex w-full shrink-0 flex-col items-center gap-2 px-4 py-2.5 lg:hidden"
-          onClick={() => setPanelOpen((value) => !value)}
+          className="flex min-h-11 w-full shrink-0 touch-none cursor-grab select-none flex-col items-center justify-center gap-1 px-4 py-2 active:cursor-grabbing lg:hidden"
+          onPointerDown={onSheetPointerDown}
+          onPointerMove={onSheetPointerMove}
+          onPointerUp={finishSheetDrag}
+          onPointerCancel={finishSheetDrag}
+          onClick={toggleSheet}
           aria-expanded={panelOpen}
+          aria-label={panelOpen ? t("hidePanel") : t("showPanel")}
         >
-          <span className="h-1 w-10 rounded-full bg-ink/15" aria-hidden />
-          {!panelOpen ? (
+          <span className={`h-1.5 w-12 rounded-full ${sheetDragging ? "bg-ink/40" : "bg-ink/20"}`} aria-hidden />
+          {snap === "peek" ? (
             <span className="flex w-full items-center justify-between gap-2 text-sm font-medium text-ink">
               <span className="truncate">{panelTitle}</span>
-              <span className="shrink-0 text-xs text-mist">{t("showPanel")}</span>
+              <PanelChevron open={false} />
             </span>
-          ) : (
-            <span className="flex w-full items-center justify-between gap-2 text-xs text-mist">
-              <span className="truncate text-sm font-medium text-ink">{panelTitle}</span>
-              <span>{t("hidePanel")}</span>
-            </span>
-          )}
+          ) : null}
         </button>
         <div
           dir={textDir}
@@ -969,8 +1074,8 @@ function AreaList({
   const t = useTranslations("desk");
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-b border-ink/10 px-4 py-4">
-        <h1 className="font-display text-2xl">{t("areas")}</h1>
+      <header className="border-b border-ink/10 px-4 py-3 lg:py-4">
+        <h1 className="font-display text-xl lg:text-2xl">{t("areas")}</h1>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {(
             [
@@ -982,7 +1087,7 @@ function AreaList({
               key={id}
               type="button"
               onClick={() => onCountry(id)}
-              className={`rounded-full px-3 py-1.5 text-sm ${country === id ? "bg-palm text-white" : "bg-sand text-ink"}`}
+              className={`min-h-11 rounded-full px-3 text-sm ${country === id ? "bg-palm text-white" : "bg-sand text-ink"}`}
             >
               {label}
             </button>
@@ -994,7 +1099,7 @@ function AreaList({
               key={city.id}
               type="button"
               onClick={() => onCity(city.id)}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${city.id === cityId ? "bg-palm text-white" : "border border-ink/10 bg-white"}`}
+              className={`min-h-11 shrink-0 rounded-full px-3 text-sm ${city.id === cityId ? "bg-palm text-white" : "border border-ink/10 bg-white"}`}
             >
               {pick(city.names, locale)}
             </button>
@@ -1238,9 +1343,17 @@ function ProjectDetail({
         </p>
         <dl className="grid grid-cols-2 gap-2 text-sm">
           {[
-            [t("startPrice"), `${shortAmount(project.startPrice, currency)} ${moneyUnit(currency, locale)}`],
+            [
+              t("startPrice"),
+              project.startPrice > 0
+                ? `${shortAmount(project.startPrice, currency)} ${moneyUnit(currency, locale)}`
+                : t("onRequest"),
+            ],
             [t("kind"), kind],
-            [t("size"), `${project.sizeMin}–${project.sizeMax} ${t("sqft")}`],
+            [
+              t("size"),
+              project.sizeMax > 0 ? `${project.sizeMin}–${project.sizeMax} ${t("sqft")}` : t("onRequest"),
+            ],
             [t("handover"), project.handover],
             [t("unitCount"), String(project.unitCount)],
           ].map(([label, value]) => (
@@ -1266,14 +1379,20 @@ function ProjectDetail({
         ) : null}
         {unit ? (
           <p className="rounded-2xl border border-ink/10 px-3 py-3 text-sm">
-            {bedLabel(unit.beds, t)} · {t("fromPrice")} {fullAmount(unit.priceFrom, currency, locale)} · {unit.sizeMin}–{unit.sizeMax} {t("sqft")}
+            {bedLabel(unit.beds, t)}
+            {unit.priceFrom > 0 ? ` · ${t("fromPrice")} ${fullAmount(unit.priceFrom, currency, locale)}` : ""}
+            {unit.sizeMax > 0 ? ` · ${unit.sizeMin}–${unit.sizeMax} ${t("sqft")}` : ""}
           </p>
         ) : null}
-        {project.payment.length ? (
+        {scheduleSteps(project).length ? (
           <section>
-            <h2 className="text-sm font-semibold">{t("payment")}</h2>
+            <h2 className="text-sm font-semibold">
+              {project.brochure.plans[0] && pick(project.brochure.plans[0].title, locale).trim()
+                ? pick(project.brochure.plans[0].title, locale)
+                : t("payment")}
+            </h2>
             <ul className="mt-2 space-y-2">
-              {project.payment.map((step, index) => (
+              {scheduleSteps(project).map((step, index) => (
                 <li key={`${step.percent}-${index}`} className="flex items-center justify-between rounded-2xl bg-sand px-3 py-3 text-sm">
                   <span>{pick(step.label, locale)}</span>
                   <span className="font-semibold">{step.percent}%</span>

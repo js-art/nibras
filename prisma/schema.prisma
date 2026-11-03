@@ -84,6 +84,7 @@ model Project {
   phone       String
   units       Json
   payment     Json
+  brochure    Json      @default("{}")
   updatedAt   DateTime  @default(now())
   area        Area      @relation(fields: [areaId], references: [id], onDelete: Cascade)
   developer   Developer @relation(fields: [developerId], references: [id], onDelete: Restrict)

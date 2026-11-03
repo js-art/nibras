@@ -75,6 +75,7 @@ async function main() {
       phone: project.phone,
       units: project.units,
       payment: project.payment,
+      brochure: project.brochure,
     })),
   });
   await db.suggestion.createMany({

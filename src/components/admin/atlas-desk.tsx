@@ -18,10 +18,12 @@ import { circleRing, openRing, roundRing, simplify, type DrawMode } from "@/lib/
 import type { DataTableFilterField } from "@/types";
 import { FieldError, FieldHint, HelpIcon, HintLabel, SectionHint } from "@/components/admin/hint-label";
 import { ImagePickerField } from "@/components/admin/image-picker-field";
+import { BrochureFields } from "@/components/admin/brochure-fields";
 import { CountryPhoneInput } from "@/components/custom/inputs/country-phone-input";
 import {
   centroid,
   closeRing,
+  emptyBrochure,
   pick,
   seedAtlas,
   slugify,
@@ -1394,6 +1396,10 @@ function ProjectFields({
           </div>
         ))}
       </section>
+      <BrochureFields
+        brochure={project.brochure ?? emptyBrochure()}
+        onChange={(brochure) => onChange({ ...draft, value: { ...project, brochure } })}
+      />
       <p className="text-xs text-mist">{t("projectPlaceHint")}</p>
     </>
   );
@@ -1885,6 +1891,7 @@ function blankDraft(section: Section, atlas: Atlas): Draft {
           { percent: 55, label: { en: "During construction", ar: "أثناء الإنشاء", fa: "در حین ساخت" } },
           { percent: 25, label: { en: "On handover", ar: "عند التسليم", fa: "در زمان تحویل کلید" } },
         ],
+        brochure: emptyBrochure(),
         updatedAt,
       },
     };

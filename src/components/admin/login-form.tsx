@@ -43,7 +43,7 @@ export function LoginForm() {
       }}
     >
       <div className="flex items-start justify-between gap-4">
-        <Mark className="h-12 w-12" />
+        <Mark className="h-14 w-12" />
         <LocaleSwitcher tone="light" />
       </div>
       <div className="mt-6 h-px w-12 bg-[#e4c27a]" />

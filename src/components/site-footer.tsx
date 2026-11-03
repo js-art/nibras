@@ -47,7 +47,7 @@ export function SiteFooter({
         <div className="grid gap-12 md:grid-cols-[1.35fr_1fr_1fr] md:gap-10">
           <div>
             <div className="flex items-center gap-2.5">
-              <Mark tone="light" src={brandLogo} alt="" />
+              <Mark tone="light" src={brandLogo} alt="" className="h-11 w-10" />
               <span className="text-lg font-semibold tracking-tight">{brandName}</span>
             </div>
             <p className="mt-5 max-w-sm text-base leading-8 text-[#d5e4db]">{tagline}</p>

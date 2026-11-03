@@ -32,7 +32,7 @@ export function SiteHeader({
     <header className="sticky top-0 z-40 bg-palm-deep text-[#e7f2ec]">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4">
         <Link href="/" className="flex shrink-0 items-center gap-2.5" onClick={() => setOpen(false)}>
-          <Mark tone="light" src={brandLogo} alt="" />
+          <Mark tone="light" src={brandLogo} alt="" className="h-11 w-10" />
           <span className="text-lg font-semibold tracking-tight">{brandName}</span>
         </Link>
         <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex">

@@ -56,10 +56,12 @@ export default async function DeveloperPage({
               {pick(developer.names, locale)}
             </h1>
             <ProseHtml className="mt-3 max-w-xl text-base leading-7 text-mist" html={pick(developer.about, locale)} />
-            <p className="mt-3 text-sm text-[#e4c27a]">
-              {developer.delivered.toLocaleString(locale === "fa" ? "fa-IR" : locale === "ar" ? "ar-AE" : "en-AE")}{" "}
-              {t("delivered")}
-            </p>
+            {developer.delivered > 0 ? (
+              <p className="mt-3 text-sm text-[#e4c27a]">
+                {developer.delivered.toLocaleString(locale === "fa" ? "fa-IR" : locale === "ar" ? "ar-AE" : "en-AE")}{" "}
+                {t("delivered")}
+              </p>
+            ) : null}
           </div>
           <span className="block overflow-hidden rounded-2xl ring-1 ring-[#e4c27a]/70">
             <img src={developer.image || FALLBACK_IMAGE} alt="" className="aspect-[16/10] h-auto w-full object-cover" />

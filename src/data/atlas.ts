@@ -55,6 +55,70 @@ export type PaymentStep = {
   label: LocaleText;
 };
 
+export const HIGHLIGHT_KEYS = ["furnished", "equipped", "fitted", "spacious", "smart"] as const;
+export type HighlightKey = (typeof HIGHLIGHT_KEYS)[number];
+
+export const AMENITY_KEYS = [
+  "mini_golf",
+  "ping_pong",
+  "swings",
+  "jogging",
+  "climbing",
+  "trampoline",
+  "ice_bath",
+  "jacuzzi",
+  "gym",
+  "pilates",
+  "sauna",
+  "bbq",
+  "coworking",
+  "offices",
+  "reading",
+  "infinity_pool",
+  "kids_pool",
+  "cabanas",
+] as const;
+export type AmenityKey = (typeof AMENITY_KEYS)[number];
+
+export type ProjectFile = {
+  id: string;
+  name: string;
+  url: string;
+};
+
+/** A named schedule. Several can sit on one project; they are alternatives, not one total. */
+export type PaymentPlan = {
+  id: string;
+  title: LocaleText;
+  note: LocaleText;
+  steps: PaymentStep[];
+};
+
+export type Brochure = {
+  tagline: LocaleText;
+  /** Finer than the neighbourhood, e.g. Dubai Land Residence Complex. */
+  place: LocaleText;
+  structure: string;
+  mapUrl: string;
+  highlights: HighlightKey[];
+  amenities: AmenityKey[];
+  files: ProjectFile[];
+  plans: PaymentPlan[];
+};
+
+export function emptyBrochure(): Brochure {
+  return {
+    tagline: { en: "", ar: "", fa: "" },
+    place: { en: "", ar: "", fa: "" },
+    structure: "",
+    mapUrl: "",
+    highlights: [],
+    amenities: [],
+    files: [],
+    plans: [],
+  };
+}
+
 export type Project = {
   id: string;
   areaId: string;
@@ -75,6 +139,7 @@ export type Project = {
   phone: string;
   units: UnitBand[];
   payment: PaymentStep[];
+  brochure: Brochure;
   updatedAt: number;
 };
 
@@ -157,15 +222,28 @@ function project(input: {
   phone: string;
   currency?: Currency;
   units?: UnitBand[];
+  payment?: PaymentStep[];
+  brochure?: Brochure;
 }): Project {
   return {
     ...input,
     currency: input.currency ?? "AED",
     ring: plot(input.point[0], input.point[1]),
     units: input.units ?? bands(input.startPrice, input.kind),
-    payment: pay.map((step) => ({ ...step, label: { ...step.label } })),
+    payment:
+      input.payment ??
+      input.brochure?.plans[0]?.steps.map((step) => ({ ...step, label: { ...step.label } })) ??
+      pay.map((step) => ({ ...step, label: { ...step.label } })),
+    brochure: input.brochure ?? emptyBrochure(),
     updatedAt: 0,
   };
+}
+
+/** Steps the map and the short card should read: the first named plan, else the legacy schedule. */
+export function scheduleSteps(project: Pick<Project, "payment" | "brochure">): PaymentStep[] {
+  const named = project.brochure?.plans?.[0]?.steps;
+  if (named && named.length) return named;
+  return project.payment ?? [];
 }
 
 export function pick(text: LocaleText, locale: string) {
@@ -345,6 +423,74 @@ function ringOf(value: unknown): LngLat[] {
 const beds: Beds[] = ["studio", "1", "2", "3", "4"];
 const kinds: Kind[] = ["apartment", "villa", "townhouse"];
 
+function keyList<T extends string>(value: unknown, allowed: readonly T[]): T[] {
+  if (!Array.isArray(value)) return [];
+  const out: T[] = [];
+  for (const item of value) {
+    const key = String(item);
+    if ((allowed as readonly string[]).includes(key) && !out.includes(key as T)) out.push(key as T);
+  }
+  return out;
+}
+
+function httpOrPath(value: unknown, max = 500) {
+  const url = String(value ?? "").trim().slice(0, max);
+  if (!url) return "";
+  if (url.startsWith("/") && !url.startsWith("//")) return url;
+  if (url.startsWith("https://") || url.startsWith("http://")) return url;
+  return "";
+}
+
+function plansOf(value: unknown): PaymentPlan[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 6).map((item, index) => {
+    const row = (item && typeof item === "object" ? item : {}) as Partial<PaymentPlan>;
+    const steps = (Array.isArray(row.steps) ? row.steps : []).slice(0, 24).map((step) => {
+      const line = (step && typeof step === "object" ? step : {}) as Partial<PaymentStep>;
+      return {
+        percent: Math.min(100, Math.max(0, num(line.percent))),
+        label: text(line.label),
+      };
+    });
+    return {
+      id: slugify(String(row.id || `plan-${index + 1}`)) || `plan-${index + 1}`,
+      title: text(row.title),
+      note: text(row.note),
+      steps,
+    };
+  });
+}
+
+function filesOf(value: unknown): ProjectFile[] {
+  if (!Array.isArray(value)) return [];
+  const out: ProjectFile[] = [];
+  for (const [index, item] of value.slice(0, 8).entries()) {
+    const row = (item && typeof item === "object" ? item : {}) as Partial<ProjectFile>;
+    const url = httpOrPath(row.url);
+    if (!url) continue;
+    out.push({
+      id: slugify(String(row.id || `file-${index + 1}`)) || `file-${index + 1}`,
+      name: String(row.name ?? "").trim().slice(0, 160) || url,
+      url,
+    });
+  }
+  return out;
+}
+
+function brochureOf(value: unknown): Brochure {
+  const raw = value && typeof value === "object" ? (value as Partial<Brochure>) : {};
+  return {
+    tagline: text(raw.tagline),
+    place: text(raw.place),
+    structure: String(raw.structure ?? "").trim().slice(0, 80),
+    mapUrl: httpOrPath(raw.mapUrl),
+    highlights: keyList(raw.highlights, HIGHLIGHT_KEYS),
+    amenities: keyList(raw.amenities, AMENITY_KEYS),
+    files: filesOf(raw.files),
+    plans: plansOf(raw.plans),
+  };
+}
+
 export function normalizeAtlas(input: unknown): Atlas | null {
   if (!input || typeof input !== "object") return null;
   const raw = input as Partial<Atlas>;
@@ -466,6 +612,7 @@ export function normalizeAtlas(input: unknown): Atlas | null {
       phone: String(project.phone ?? "").replace(/[^\d+]/g, "").slice(0, 18),
       units,
       payment,
+      brochure: brochureOf(project.brochure),
       updatedAt: stamp(project.updatedAt),
     });
   }
@@ -493,6 +640,110 @@ export function normalizeAtlas(input: unknown): Atlas | null {
   }
 
   return { cities, areas, developers, projects, suggestions };
+}
+
+function line(percent: number, en: string, ar: string, fa: string): PaymentStep {
+  return { percent, label: tx(en, ar, fa) };
+}
+
+function westonBrochure(): Brochure {
+  const onCompletion: PaymentStep[] = [
+    line(15, "On booking, November 2026", "عند الحجز، نوفمبر 2026", "هنگام رزرو، نوامبر ۲۰۲۶"),
+    line(5, "2nd installment, May 2027", "القسط الثاني، مايو 2027", "قسط دوم، مه ۲۰۲۷"),
+    line(10, "3rd installment, November 2027", "القسط الثالث، نوفمبر 2027", "قسط سوم، نوامبر ۲۰۲۷"),
+    line(10, "4th installment, May 2028", "القسط الرابع، مايو 2028", "قسط چهارم، مه ۲۰۲۸"),
+    line(10, "5th installment, Q4 2028", "القسط الخامس، الربع الأخير 2028", "قسط پنجم، سه‌ماههٔ چهارم ۲۰۲۸"),
+    line(50, "On completion, Q4 2028", "عند التسليم، الربع الأخير 2028", "هنگام تحویل، سه‌ماههٔ چهارم ۲۰۲۸"),
+  ];
+  const postHandover: PaymentStep[] = [
+    line(20, "Down payment, 2 November 2026", "دفعة أولى، 2 نوفمبر 2026", "پیش‌پرداخت، ۲ نوامبر ۲۰۲۶"),
+    line(5, "1st installment, 15 February 2027", "القسط الأول، 15 فبراير 2027", "قسط اول، ۱۵ فوریه ۲۰۲۷"),
+    line(10, "2nd installment, 15 May 2027", "القسط الثاني، 15 مايو 2027", "قسط دوم، ۱۵ مه ۲۰۲۷"),
+    line(10, "3rd installment, 15 November 2027", "القسط الثالث، 15 نوفمبر 2027", "قسط سوم، ۱۵ نوامبر ۲۰۲۷"),
+    line(10, "4th installment, 15 May 2028", "القسط الرابع، 15 مايو 2028", "قسط چهارم، ۱۵ مه ۲۰۲۸"),
+    line(5, "On completion, 31 December 2028", "عند التسليم، 31 ديسمبر 2028", "هنگام تحویل، ۳۱ دسامبر ۲۰۲۸"),
+    line(3.5, "6th installment, 15 March 2029", "القسط السادس، 15 مارس 2029", "قسط ششم، ۱۵ مارس ۲۰۲۹"),
+    line(3.5, "7th installment, 15 June 2029", "القسط السابع، 15 يونيو 2029", "قسط هفتم، ۱۵ ژوئن ۲۰۲۹"),
+    line(3.5, "8th installment, 15 September 2029", "القسط الثامن، 15 سبتمبر 2029", "قسط هشتم، ۱۵ سپتامبر ۲۰۲۹"),
+    line(3.5, "9th installment, 15 December 2029", "القسط التاسع، 15 ديسمبر 2029", "قسط نهم، ۱۵ دسامبر ۲۰۲۹"),
+    line(3.5, "10th installment, 15 March 2030", "القسط العاشر، 15 مارس 2030", "قسط دهم، ۱۵ مارس ۲۰۳۰"),
+    line(3.5, "11th installment, 15 June 2030", "القسط الحادي عشر، 15 يونيو 2030", "قسط یازدهم، ۱۵ ژوئن ۲۰۳۰"),
+    line(3.5, "12th installment, 15 September 2030", "القسط الثاني عشر، 15 سبتمبر 2030", "قسط دوازدهم، ۱۵ سپتامبر ۲۰۳۰"),
+    line(3.5, "13th installment, 15 December 2030", "القسط الثالث عشر، 15 ديسمبر 2030", "قسط سیزدهم، ۱۵ دسامبر ۲۰۳۰"),
+    line(3, "14th installment, 15 March 2031", "القسط الرابع عشر، 15 مارس 2031", "قسط چهاردهم، ۱۵ مارس ۲۰۳۱"),
+    line(3, "15th installment, 15 June 2031", "القسط الخامس عشر، 15 يونيو 2031", "قسط پانزدهم، ۱۵ ژوئن ۲۰۳۱"),
+    line(3, "16th installment, 15 September 2031", "القسط السادس عشر، 15 سبتمبر 2031", "قسط شانزدهم، ۱۵ سپتامبر ۲۰۳۱"),
+    line(3, "17th installment, 15 December 2031", "القسط السابع عشر، 15 ديسمبر 2031", "قسط هفدهم، ۱۵ دسامبر ۲۰۳۱"),
+  ];
+  return {
+    tagline: tx("Designed for the rhythm ahead", "مصمم لإيقاع ما يأتي", "برای ریتم پیش رو"),
+    place: tx(
+      "Dubai Land Residence Complex",
+      "مجمع دبي لاند السكني",
+      "مجتمع مسکونی دبی‌لند",
+    ),
+    structure: "3B+G+17+Roof",
+    mapUrl: "https://maps.app.goo.gl/pEiUvhkuskKXojmc6",
+    highlights: ["furnished", "equipped", "fitted", "spacious", "smart"],
+    amenities: [
+      "mini_golf",
+      "ping_pong",
+      "swings",
+      "jogging",
+      "climbing",
+      "trampoline",
+      "ice_bath",
+      "jacuzzi",
+      "gym",
+      "pilates",
+      "sauna",
+      "bbq",
+      "coworking",
+      "offices",
+      "reading",
+      "infinity_pool",
+      "kids_pool",
+      "cabanas",
+    ],
+    files: [
+      {
+        id: "payment-plan",
+        name: "Weston payment plan",
+        url: "/files/weston/payment-plan.pdf",
+      },
+      {
+        id: "sales-offer-808",
+        name: "Sales offer, unit 808, 2 Nov 2026",
+        url: "/files/weston/sales-offer-unit-808.pdf",
+      },
+    ],
+    plans: [
+      {
+        id: "50-50",
+        title: tx("50/50 on completion", "50/50 عند التسليم", "۵۰/۵۰ هنگام تحویل"),
+        note: tx(
+          "15% on booking. The sheet prices this plan 5% under the post-handover price. A separate 50/50 post-handover split is drawn on the same PDF.",
+          "15٪ عند الحجز. الورقة تسعر هذه الخطة أقل بـ5٪ من سعر ما بعد التسليم. تقسيم 50/50 لما بعد التسليم مرسوم على الملف نفسه.",
+          "۱۵٪ هنگام رزرو. برگه این برنامه را ۵٪ زیر قیمت پس از تحویل قیمت کرده. یک تقسیم جداگانهٔ ۵۰/۵۰ پس از تحویل روی همان PDF کشیده شده.",
+        ),
+        steps: onCompletion,
+      },
+      {
+        id: "60-40",
+        title: tx(
+          "60/40 post-handover, 3 years",
+          "60/40 بعد التسليم، 3 سنوات",
+          "۶۰/۴۰ پس از تحویل، ۳ سال",
+        ),
+        note: tx(
+          "Percents from the 2 November 2026 sales offer for unit 808, which used a 20% down payment. A 15% down payment is also offered. DLD and the admin fee sit outside these percents.",
+          "النسب من عرض بيع 2 نوفمبر 2026 للوحدة 808، وكانت دفعته الأولى 20٪. تُعرض أيضاً دفعة أولى 15٪. رسم دائرة الأراضي ورسوم الإدارة خارج هذه النسب.",
+          "درصدها از پیشنهاد فروش ۲ نوامبر ۲۰۲۶ برای واحد ۸۰۸ است که پیش‌پرداختش ۲۰٪ بود. پیش‌پرداخت ۱۵٪ هم پیشنهاد شده. عوارض دایرهٔ اراضی و هزینهٔ اداری بیرون این درصدهاست.",
+        ),
+        steps: postHandover,
+      },
+    ],
+  };
 }
 
 const rawSeedAtlas = {
@@ -560,6 +811,17 @@ const rawSeedAtlas = {
       ),
       delivered: 900,
       image: photo("photo-1502005229762-cf1b2da7c5d6"),
+    },
+    {
+      id: "wadan",
+      names: tx("Wadan", "وادان", "وادان"),
+      about: tx(
+        "Developer of Weston in Dubai Land Residence Complex. Public line 800 7744. Site wadan.ae.",
+        "مطوّر وستون في مجمع دبي لاند السكني. الخط العام 800 7744. الموقع wadan.ae.",
+        "سازندهٔ وستون در مجتمع مسکونی دبی‌لند. خط عمومی ۸۰۰ ۷۷۴۴. سایت wadan.ae.",
+      ),
+      delivered: 0,
+      image: photo("photo-1486406146926-c627a92ad1ab"),
     },
   ],
   areas: [
@@ -1233,6 +1495,34 @@ const rawSeedAtlas = {
       ),
       whatsapp: "96890000033",
       phone: "+96890000033",
+    }),
+    project({
+      id: "weston",
+      areaId: "dubai-land",
+      developerId: "wadan",
+      kind: "apartment",
+      handover: "Q4 2028",
+      startPrice: 0,
+      sizeMin: 0,
+      sizeMax: 0,
+      unitCount: 0,
+      point: [55.376, 25.084],
+      image: photo("photo-1486325212027-8081e485255e"),
+      names: tx("Weston", "ويستون", "وستون"),
+      about: tx(
+        "<p>Weston is a furnished apartment building by Wadan in Dubai Land Residence Complex. The sheet lists studios and one-, two-, and three-bedroom homes, stacked as 3B+G+17+Roof, with handover written as Q4 2028.</p><p>Two down payments are offered, 15% and 20%. The sheets show a 50/50 plan due on completion, and a 60/40 plan with the balance spread about three years after handover. The 50/50 price is written 5% under the post-handover price. A 50/50 post-handover split is also on the payment PDF.</p><p>A sales offer dated 2 November 2026 covers one home only: unit 808, a furnished one-bedroom on floor 8, boulevard view, one parking space, suite 684.69 sq ft, balcony 72.76 sq ft, total 757.45 sq ft, at 1,186,653.54 AED on the 60/40 plan. That sheet adds a 4% DLD fee and a 3,500 AED admin fee, says it was valid for 24 hours, and is not a starting price for the building.</p>",
+        "<p>ويستون مبنى شقق مفروش من وادان في مجمع دبي لاند السكني. الورقة تذكر استوديوهات وشقق غرفة وغرفتين وثلاث غرف، بتكوين 3B+G+17+Roof، والتسليم مكتوب الربع الأخير 2028.</p><p>يُعرض دفعتان أولى: 15٪ و20٪. الأوراق تُظهر خطة 50/50 مستحقة عند التسليم، وخطة 60/40 يُوزَّع باقيها على نحو ثلاث سنوات بعد التسليم. سعر خطة 50/50 مكتوب أقل بـ5٪ من سعر ما بعد التسليم. وتقسيم 50/50 لما بعد التسليم موجود أيضاً في ملف الدفع.</p><p>عرض بيع بتاريخ 2 نوفمبر 2026 يخص منزلاً واحداً: الوحدة 808، غرفة واحدة مفروشة في الطابق 8، إطلالة على الجادة، موقف واحد، جناح 684.69 قدم مربع، شرفة 72.76، المجموع 757.45، بسعر 1,186,653.54 درهم على خطة 60/40. الورقة تضيف رسم دائرة الأراضي 4٪ ورسوم إدارة 3,500 درهم، وتقول إن العرض كان صالحاً 24 ساعة، وليس سعراً ابتدائياً للمبنى.</p>",
+        "<p>وستون ساختمان آپارتمان مبلهٔ وادان در مجتمع مسکونی دبی‌لند است. برگه استودیو و خانه‌های یک، دو و سه خوابه را نوشته، با ترکیب 3B+G+17+Roof و تحویل سه‌ماههٔ چهارم ۲۰۲۸.</p><p>دو پیش‌پرداخت پیشنهاد شده: ۱۵٪ و ۲۰٪. برگه‌ها یک برنامهٔ ۵۰/۵۰ سررسید هنگام تحویل دارند، و یک برنامهٔ ۶۰/۴۰ که باقی‌مانده‌اش حدود سه سال پس از تحویل پخش می‌شود. قیمت برنامهٔ ۵۰/۵۰ پنج درصد زیر قیمت پس از تحویل نوشته شده. تقسیم ۵۰/۵۰ پس از تحویل هم در فایل پرداخت هست.</p><p>پیشنهاد فروش مورخ ۲ نوامبر ۲۰۲۶ فقط یک خانه را پوشش می‌دهد: واحد ۸۰۸، یک‌خوابهٔ مبله در طبقهٔ ۸، دید بلوار، یک پارکینگ، سوئیت ۶۸۴٫۶۹ فوت مربع، بالکن ۷۲٫۷۶، جمع ۷۵۷٫۴۵، به قیمت ۱٬۱۸۶٬۶۵۳٫۵۴ درهم روی برنامهٔ ۶۰/۴۰. آن برگه ۴٪ عوارض دایرهٔ اراضی و ۳٬۵۰۰ درهم هزینهٔ اداری را اضافه می‌کند، می‌گوید ۲۴ ساعت معتبر بوده، و قیمت شروع ساختمان نیست.</p>",
+      ),
+      whatsapp: "",
+      phone: "+9718007744",
+      units: [
+        { id: "studio", beds: "studio", priceFrom: 0, sizeMin: 0, sizeMax: 0 },
+        { id: "1", beds: "1", priceFrom: 0, sizeMin: 0, sizeMax: 0 },
+        { id: "2", beds: "2", priceFrom: 0, sizeMin: 0, sizeMax: 0 },
+        { id: "3", beds: "3", priceFrom: 0, sizeMin: 0, sizeMax: 0 },
+      ],
+      brochure: westonBrochure(),
     }),
   ],
   suggestions: [

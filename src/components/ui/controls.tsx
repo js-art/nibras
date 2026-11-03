@@ -12,7 +12,7 @@ export const areaClass =
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="grid gap-2">
+    <label className="grid gap-1.5">
       <span className="text-sm font-medium text-ink">{label}</span>
       <div className="font-normal">{children}</div>
     </label>

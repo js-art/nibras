@@ -19,7 +19,7 @@ export type SiteContent = {
   brand: {
     /** Display name in header, footer, and desk chrome. */
     name: LocaleText;
-    /** Public image URL; empty keeps the default mark. */
+    /** Public image URL. Empty uses the Savat1 mark. */
     logo: string;
   };
   contact: {
@@ -77,7 +77,7 @@ function text(value: unknown): LocaleText {
 export const seedSite: SiteContent = {
   brand: {
     name: tx("Savat1", "Savat1", "Savat1"),
-    logo: "",
+    logo: "/brand/mark.png",
   },
   contact: {
     phone: "+971 4 000 0000",

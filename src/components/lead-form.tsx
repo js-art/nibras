@@ -27,7 +27,7 @@ export function LeadForm({
 
   return (
     <form
-      className="space-y-4"
+      className="space-y-3"
       onSubmit={(event) => {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
@@ -46,8 +46,8 @@ export function LeadForm({
       }}
     >
       <div>
-        <h2 className="font-display text-3xl leading-[1.25]">{labels.title}</h2>
-        <p className="mt-2 text-base leading-8 text-mist">{labels.lede}</p>
+        <h2 className="font-display text-xl leading-snug">{labels.title}</h2>
+        <p className="mt-1.5 text-sm leading-6 text-mist">{labels.lede}</p>
       </div>
       <Field label={labels.name}>
         <Input name="name" required autoComplete="name" />
@@ -59,7 +59,7 @@ export function LeadForm({
         <Input name="budget" />
       </Field>
       <Field label={labels.note}>
-        <Textarea name="note" rows={4} />
+        <Textarea name="note" rows={2} className="min-h-16 py-2 leading-6" style={{ minHeight: "4rem" }} />
       </Field>
       <button type="submit" className="h-13 w-full rounded-lg bg-palm-deep text-sm font-semibold text-[#e7f2ec]">
         {labels.submit}

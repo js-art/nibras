@@ -40,8 +40,9 @@ export default async function LocaleLayout({
       lang={locale}
       dir={direction(locale)}
       className="h-full antialiased"
+      suppressHydrationWarning
     >
-      <body className="flex min-h-dvh flex-col">
+      <body className="flex min-h-dvh flex-col" suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Shell locale={locale}>{children}</Shell>
         </NextIntlClientProvider>

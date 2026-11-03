@@ -52,7 +52,7 @@ export function EntityCard({
         {cta ? (
           <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-[#e4c27a] [text-shadow:0_1px_2px_rgba(6,36,33,0.85)]">
             {cta}
-            <span aria-hidden className="transition duration-300 ease-out group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5">
+            <span aria-hidden className="transition duration-300 ease-out group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5">
               →
             </span>
           </span>

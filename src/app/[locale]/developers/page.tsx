@@ -56,7 +56,11 @@ export default async function DevelopersPage({
                 href={`/developers/${developer.id}`}
                 image={developer.image}
                 title={pick(developer.names, locale)}
-                meta={`${developer.delivered.toLocaleString(locale === "fa" ? "fa-IR" : locale === "ar" ? "ar-AE" : "en-AE")} ${t("delivered")}`}
+                meta={
+                  developer.delivered > 0
+                    ? `${developer.delivered.toLocaleString(locale === "fa" ? "fa-IR" : locale === "ar" ? "ar-AE" : "en-AE")} ${t("delivered")}`
+                    : undefined
+                }
                 body={pickPlain(developer.about, locale)}
                 cta={t("open")}
               />

@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import {
+  emptyBrochure,
   normalizeAtlas,
   seedAtlas,
   type Area,
@@ -96,6 +97,7 @@ export async function readAtlas(): Promise<Atlas> {
         phone: row.phone,
         units: asJson(row.units, []),
         payment: asJson(row.payment, []),
+        brochure: asJson(row.brochure, emptyBrochure()),
         updatedAt: fromDate(row.updatedAt),
       }),
     ),
@@ -223,6 +225,7 @@ export async function writeAtlas(input: Atlas) {
           phone: project.phone,
           units: project.units as unknown as Prisma.InputJsonValue,
           payment: project.payment as unknown as Prisma.InputJsonValue,
+          brochure: project.brochure as unknown as Prisma.InputJsonValue,
         })),
       });
       await Promise.all(
