@@ -673,15 +673,14 @@ export function AtlasMap({
     const limits = sheetLimits();
     const height = Math.min(limits.full, Math.max(limits.peek, session.h + (session.y - event.clientY)));
     const delta = session.y - event.clientY;
-    const points = [
+    let target: "peek" | "half" | "full" = "half";
+    for (const [name, value] of [
       ["peek", limits.peek],
       ["half", limits.half],
       ["full", limits.full],
-    ] as const;
-    let target: "peek" | "half" | "full" = points.reduce(
-      (best, point) => (Math.abs(point[1] - height) < Math.abs(limits[best] - height) ? point[0] : best),
-      "half",
-    );
+    ] as const) {
+      if (Math.abs(value - height) < Math.abs(limits[target] - height)) target = name;
+    }
     if (delta < -56) target = height < limits.half ? "peek" : "half";
     else if (delta > 56) target = height > limits.half ? "full" : "half";
     setSnap(target);
