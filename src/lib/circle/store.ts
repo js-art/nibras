@@ -842,7 +842,8 @@ export async function projectFacts(projectId: string) {
     },
   });
   if (!row?.introducedById) return null;
-  const kind = row.kind === "villa" || row.kind === "townhouse" ? row.kind : "apartment";
+  const kind: "apartment" | "villa" | "townhouse" =
+    row.kind === "villa" ? "villa" : row.kind === "townhouse" ? "townhouse" : "apartment";
   return {
     kind,
     startPrice: row.startPrice,

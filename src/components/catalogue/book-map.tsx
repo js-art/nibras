@@ -146,7 +146,9 @@ export function BookMap({
     if (map.isStyleLoaded()) draw();
     else map.once("load", draw);
     map.on("zoomend", draw);
-    return () => map.off("zoomend", draw);
+    return () => {
+      map.off("zoomend", draw);
+    };
   }, [pins, selectedId]);
 
   useEffect(() => {

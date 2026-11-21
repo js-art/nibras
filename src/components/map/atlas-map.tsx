@@ -249,7 +249,7 @@ export function AtlasMap({
     schedule();
     const parent = sheetRef.current?.parentElement;
     const observer = parent ? new ResizeObserver(schedule) : null;
-    if (parent) observer.observe(parent);
+    if (observer && parent) observer.observe(parent);
     const viewport = window.visualViewport;
     viewport?.addEventListener("resize", schedule);
     viewport?.addEventListener("scroll", schedule);
