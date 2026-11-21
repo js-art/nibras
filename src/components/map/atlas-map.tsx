@@ -58,17 +58,12 @@ type MapNote = {
 const empty = { type: "FeatureCollection" as const, features: [] };
 
 function readSheetFrame(sheet: HTMLElement | null) {
-  const viewport = window.visualViewport;
-  const viewTop = viewport?.offsetTop ?? 0;
-  const viewBottom = viewTop + (viewport?.height ?? window.innerHeight);
-  const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? viewTop;
-  const nav = sheet?.parentElement?.querySelector("nav");
-  const navTop = nav ? nav.getBoundingClientRect().top : viewBottom;
-  const visibleNav = Math.min(navTop, viewBottom);
-  const top = Math.max(headerBottom, viewTop);
-  const span = Math.max(0, visibleNav - top);
-  const bottom = Math.max(0, window.innerHeight - visibleNav);
-  return { stops: sheetStops(span), bottom };
+  const parent = sheet?.parentElement?.getBoundingClientRect();
+  const rail = sheet?.parentElement?.querySelector<HTMLElement>("[data-map-rail]");
+  const railBox = rail?.getBoundingClientRect();
+  const railHeight = railBox && railBox.height > 0 ? railBox.height : 72;
+  const span = Math.max(0, (parent?.height ?? 0) - railHeight);
+  return { stops: sheetStops(span), bottom: railHeight };
 }
 
 function sheetStops(span: number) {
@@ -527,20 +522,35 @@ export function AtlasMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready || !city) return;
-    const padding = { top: 56, bottom: 72, left: 56, right: 56 };
-    if (project && view === "project") {
-      map.flyTo({ center: project.point, zoom: 15.6, padding, essential: true });
-      return;
-    }
-    if (area && (view === "area" || view === "project")) {
-      const bounds = new LngLatBounds(area.ring[0], area.ring[0]);
-      area.ring.forEach((coord) => bounds.extend(coord));
-      map.fitBounds(bounds, { padding, maxZoom: 14.2, duration: 700 });
-      return;
-    }
-    map.flyTo({ center: city.center, zoom: city.zoom, padding, essential: true });
-  }, [area, city, project, ready, view]);
+    if (!map || !ready || !city || sheetDragging) return;
+    let cancel = false;
+    const id = window.requestAnimationFrame(() => {
+      if (cancel) return;
+      const frame = readSheetFrame(sheetRef.current);
+      const mapHeight = Math.max(0, (sheetRef.current?.parentElement?.getBoundingClientRect().height ?? 0) - frame.bottom);
+      const sheetHeight = snap === "full" ? frame.stops.half : frame.stops[snap];
+      const cover = compact ? Math.min(sheetHeight, Math.max(0, mapHeight - 140)) : 0;
+      const padding = compact
+        ? { top: 48, bottom: cover + 20, left: 20, right: 20 }
+        : { top: 56, bottom: 72, left: 56, right: 56 };
+      map.resize();
+      if (project && view === "project") {
+        map.flyTo({ center: project.point, zoom: 15.6, padding, essential: true });
+        return;
+      }
+      if (area && (view === "area" || view === "project")) {
+        const bounds = new LngLatBounds(area.ring[0], area.ring[0]);
+        area.ring.forEach((coord) => bounds.extend(coord));
+        map.fitBounds(bounds, { padding, maxZoom: 14.2, duration: 700 });
+        return;
+      }
+      map.flyTo({ center: city.center, zoom: city.zoom, padding, essential: true });
+    });
+    return () => {
+      cancel = true;
+      window.cancelAnimationFrame(id);
+    };
+  }, [area, city, compact, project, ready, sheetDragging, sheetPx, snap, view]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1001,7 +1011,7 @@ export function AtlasMap({
           : undefined
       }
     >
-      <div className="relative min-h-0 min-w-0 flex-1">
+      <div className="relative min-h-0 min-w-0 flex-1 max-lg:absolute max-lg:inset-x-0 max-lg:top-0 max-lg:bottom-18">
         <div ref={containerRef} className="h-full w-full" />
         {rail === "draw" ? (
           <p className="pointer-events-none absolute left-1/2 top-4 z-10 max-w-[min(90vw,20rem)] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-center text-xs text-paper">
@@ -1071,14 +1081,10 @@ export function AtlasMap({
 
       <aside
         ref={sheetRef}
-        style={
-          compact && sheetPx != null
-            ? { height: sheetPx, bottom: sheetBottom }
-            : undefined
-        }
-        className={`z-20 flex min-h-0 flex-col border-ink/10 bg-foam max-lg:fixed max-lg:inset-x-0 max-lg:overflow-hidden max-lg:rounded-t-3xl max-lg:border-t max-lg:shadow-[0_-18px_40px_-24px_rgba(6,36,33,0.45)] lg:static lg:h-auto lg:w-[min(100%,24rem)] lg:shrink-0 lg:border-s lg:shadow-none ${
+        style={compact && sheetPx != null ? { height: sheetPx } : undefined}
+        className={`z-20 flex min-h-0 flex-col border-ink/10 bg-foam max-lg:absolute max-lg:inset-x-0 max-lg:bottom-18 max-lg:overflow-hidden max-lg:rounded-t-3xl max-lg:border-t max-lg:shadow-[0_-18px_40px_-24px_rgba(6,36,33,0.45)] lg:static lg:h-auto lg:w-[min(100%,24rem)] lg:shrink-0 lg:border-s lg:shadow-none ${
           sheetDragging ? "max-lg:transition-none" : "transition-[height] duration-300 ease-out"
-        } ${sheetPx != null ? "" : panelOpen ? "max-lg:bottom-18 max-lg:h-[46%]" : "max-lg:bottom-18 max-lg:h-[4.5rem]"}`}
+        } ${sheetPx != null ? "" : panelOpen ? "max-lg:h-[46%]" : "max-lg:h-[4.5rem]"}`}
       >
         <button
           type="button"
@@ -1255,7 +1261,10 @@ export function AtlasMap({
         </div>
       </aside>
 
-      <nav className="relative z-30 flex h-[4.5rem] w-full shrink-0 border-t border-ink/10 bg-paper lg:h-auto lg:w-[4.75rem] lg:flex-col lg:border-s lg:border-t-0">
+      <nav
+        data-map-rail=""
+        className="relative z-30 mt-auto flex h-[4.5rem] w-full shrink-0 border-t border-ink/10 bg-paper lg:mt-0 lg:h-auto lg:w-[4.75rem] lg:flex-col lg:border-s lg:border-t-0"
+      >
         <div
           dir={textDir}
           className="flex h-full w-full items-stretch justify-around gap-1 px-2 py-1.5 lg:flex-col lg:items-center lg:justify-start lg:gap-2 lg:px-0 lg:py-3"
@@ -1474,7 +1483,7 @@ function AreaList({
 
 function Crumbs({ items }: { items: { label: string; onClick?: () => void }[] }) {
   return (
-    <nav className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
       {items.map((item, index) => (
         <span key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-2">
           {index > 0 ? <span className="text-mist">/</span> : null}
@@ -1492,7 +1501,7 @@ function Crumbs({ items }: { items: { label: string; onClick?: () => void }[] })
           )}
         </span>
       ))}
-    </nav>
+    </div>
   );
 }
 

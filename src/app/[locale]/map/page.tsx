@@ -42,7 +42,7 @@ export default async function MapPage({
   const [atlas, voices, isAdmin] = await Promise.all([readPublicAtlas(), communityVoices(), hasAdminSession()]);
 
   return (
-    <div className="h-[calc(100svh-4rem)] overflow-hidden lg:h-[calc(100dvh-4rem)]">
+    <div className="h-[calc(100dvh-4rem)] overflow-hidden">
       <AtlasMap
         atlas={atlas}
         locale={locale}
