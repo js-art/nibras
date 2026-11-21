@@ -45,21 +45,32 @@ async function download(id) {
     const stat = await readFile(file);
     if (stat.byteLength > 1000) {
       console.log(`keep  ${id}`);
-      return;
+      return true;
     }
   } catch {
     /* missing */
   }
   const url = `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1600&q=70`;
-  const response = await fetch(url, {
-    redirect: "follow",
-    headers: { accept: "image/jpeg,image/*,*/*", "user-agent": "savat-catalogue-photos" },
-  });
-  if (!response.ok) throw new Error(`${id} ${response.status}`);
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.byteLength < 1000) throw new Error(`${id} was too small to be a photo`);
-  await writeFile(file, bytes);
-  console.log(`saved ${id} (${Math.round(bytes.byteLength / 1024)} KB)`);
+  let lastError = "failed";
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        redirect: "follow",
+        headers: { accept: "image/jpeg,image/*,*/*", "user-agent": "savat-catalogue-photos" },
+      });
+      if (!response.ok) throw new Error(`${response.status}`);
+      const bytes = Buffer.from(await response.arrayBuffer());
+      if (bytes.byteLength < 1000) throw new Error("too small");
+      await writeFile(file, bytes);
+      console.log(`saved ${id} (${Math.round(bytes.byteLength / 1024)} KB)`);
+      return true;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "failed";
+      await new Promise((resolve) => setTimeout(resolve, attempt * 400));
+    }
+  }
+  console.warn(`skip  ${id} (${lastError})`);
+  return false;
 }
 
 const ids = await photoIds();
@@ -69,4 +80,8 @@ if (!ids.length) {
 }
 await mkdir(outDir, { recursive: true });
 console.log(`Fetching ${ids.length} catalogue photos into public/catalogue`);
-for (const id of ids) await download(id);
+let saved = 0;
+for (const id of ids) {
+  if (await download(id)) saved += 1;
+}
+console.log(`Catalogue photos ready: ${saved}/${ids.length}`);
