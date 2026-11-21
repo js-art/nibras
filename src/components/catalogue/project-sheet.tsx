@@ -49,7 +49,8 @@ export async function ProjectSheet({
     : project.payment.length
       ? [{ id: "payment", title: { en: "", ar: "", fa: "" }, note: { en: "", ar: "", fa: "" }, steps: project.payment }]
       : [];
-  const meetHref = `/meet/savat/${encodeURIComponent(project.id)}?talk=1`;
+  const speech = locale === "en" || locale === "ar" ? locale : "fa";
+  const meetHref = `/meet/savat/${encodeURIComponent(project.id)}?talk=1&lang=${speech}`;
   await ensureProjectChannel({ id: project.id, name: pick(project.names, locale) });
   const similar = atlas.projects
     .filter((item) => item.id !== project.id && (speaker ? item.areaId === project.areaId : item.areaId === project.areaId || item.developerId === project.developerId))
@@ -170,6 +171,7 @@ export async function ProjectSheet({
 
           <ProjectRoom
             href={meetHref}
+            locale={speech}
             title={detail("room")}
             lede={detail("roomLede", { name: pick(project.names, locale) })}
             openLabel={detail("roomOpen")}

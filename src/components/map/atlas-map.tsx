@@ -148,7 +148,16 @@ export function AtlasMap({
   const [sheetBottom, setSheetBottom] = useState(72);
   const [sheetDragging, setSheetDragging] = useState(false);
   const sheetRef = useRef<HTMLElement>(null);
-  const dragRef = useRef<{ y: number; x: number; h: number; moved: boolean; zone: boolean } | null>(null);
+  const liveSheet = useRef<number | null>(null);
+  const sheetFrame = useRef(0);
+  const dragRef = useRef<{
+    y: number;
+    x: number;
+    h: number;
+    moved: boolean;
+    zone: boolean;
+    limits: { peek: number; half: number; full: number };
+  } | null>(null);
   const ignoreClick = useRef(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const [backStack, setBackStack] = useState<{ rail: Rail; areaId: string | null; projectId: string | null }[]>([]);
@@ -234,6 +243,7 @@ export function AtlasMap({
       const frame = readSheetFrame(sheetRef.current);
       const bottom = Math.round(frame.bottom);
       const px = Math.round(frame.stops[snap]);
+      liveSheet.current = px;
       setSheetBottom((current) => (current === bottom ? current : bottom));
       setSheetPx((current) => (current === px ? current : px));
     };
@@ -522,7 +532,7 @@ export function AtlasMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready || !city || sheetDragging) return;
+    if (!map || !ready || !city) return;
     let cancel = false;
     const id = window.requestAnimationFrame(() => {
       if (cancel) return;
@@ -535,22 +545,22 @@ export function AtlasMap({
         : { top: 56, bottom: 72, left: 56, right: 56 };
       map.resize();
       if (project && view === "project") {
-        map.flyTo({ center: project.point, zoom: 15.6, padding, essential: true });
+        map.flyTo({ center: project.point, zoom: 15.6, padding, duration: 280, essential: true });
         return;
       }
       if (area && (view === "area" || view === "project")) {
         const bounds = new LngLatBounds(area.ring[0], area.ring[0]);
         area.ring.forEach((coord) => bounds.extend(coord));
-        map.fitBounds(bounds, { padding, maxZoom: 14.2, duration: 700 });
+        map.fitBounds(bounds, { padding, maxZoom: 14.2, duration: 280 });
         return;
       }
-      map.flyTo({ center: city.center, zoom: city.zoom, padding, essential: true });
+      map.flyTo({ center: city.center, zoom: city.zoom, padding, duration: 280, essential: true });
     });
     return () => {
       cancel = true;
       window.cancelAnimationFrame(id);
     };
-  }, [area, city, compact, project, ready, sheetDragging, sheetPx, snap, view]);
+  }, [area, city, compact, project, ready, snap, view]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -559,11 +569,12 @@ export function AtlasMap({
     markersRef.current = [];
     if (rail === "draw") return;
 
-    const place = (coord: LngLat, label: string, className: string, onPick: () => void) => {
+    const place = (coord: LngLat, label: string, className: string, onPick: () => void, pinId?: string) => {
       const element = document.createElement("button");
       element.type = "button";
       element.textContent = label;
       element.className = className;
+      if (pinId) element.dataset.project = pinId;
       element.addEventListener("click", (event) => {
         event.stopPropagation();
         onPick();
@@ -618,18 +629,18 @@ export function AtlasMap({
 
     const pins = view === "project" && project ? [project] : areaProjects;
     for (const item of pins) {
-      const active = item.id === hoveredId || item.id === projectId;
       place(
         item.point,
         item.startPrice > 0
           ? `${shortAmount(item.startPrice, item.currency)} ${moneyUnit(item.currency, locale)}`
           : t("onRequest"),
-        active ? hot : price,
+        price,
         () => {
           setProjectId(item.id);
           setBriefOpen(false);
           setBeds(null);
         },
+        item.id,
       );
     }
   }, [
@@ -637,17 +648,27 @@ export function AtlasMap({
     atlas,
     cityAreas,
     currencyFilter,
-    hoveredId,
     legend,
     locale,
     notesHere,
     project,
-    projectId,
     rail,
     ready,
     selectedNoteId,
     view,
   ]);
+
+  useEffect(() => {
+    const hot = "rounded-full bg-ink px-2.5 py-1 text-[12px] font-semibold text-paper shadow-lg ring-2 ring-white";
+    const price = "rounded-full bg-ink px-2 py-1 text-[11px] font-semibold text-paper shadow";
+    const active = hoveredId || projectId || "";
+    for (const marker of markersRef.current) {
+      const element = marker.getElement();
+      const id = element.dataset.project || "";
+      if (!id) continue;
+      element.className = id === active ? hot : price;
+    }
+  }, [hoveredId, projectId]);
 
   useEffect(() => {
     if (openedNote.current || !initialNote || !notes.length || !ready) return;
@@ -881,11 +902,25 @@ export function AtlasMap({
     return readSheetFrame(sheetRef.current).stops;
   }
 
+  function queueSheet(px: number) {
+    liveSheet.current = px;
+    if (sheetFrame.current) return;
+    sheetFrame.current = window.requestAnimationFrame(() => {
+      sheetFrame.current = 0;
+      const sheet = sheetRef.current;
+      const next = liveSheet.current;
+      if (!sheet || next == null) return;
+      sheet.style.transition = "none";
+      sheet.style.height = `${Math.round(next)}px`;
+      sheet.parentElement?.style.setProperty("--sheet", `${Math.round(next)}px`);
+    });
+  }
+
   function onSheetPointerDown(event: React.PointerEvent<HTMLButtonElement>) {
     if (!compact) return;
     const limits = sheetLimits();
     const current = sheetRef.current?.getBoundingClientRect().height ?? limits.half;
-    dragRef.current = { y: event.clientY, x: event.clientX, h: current, moved: false, zone: true };
+    dragRef.current = { y: event.clientY, x: event.clientX, h: current, moved: false, zone: true, limits };
     setSheetDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -895,8 +930,7 @@ export function AtlasMap({
     if (!session) return;
     const delta = session.y - event.clientY;
     if (Math.abs(delta) > 6) session.moved = true;
-    const limits = sheetLimits();
-    setSheetPx(Math.min(limits.full, Math.max(limits.peek, session.h + delta)));
+    queueSheet(Math.min(session.limits.full, Math.max(session.limits.peek, session.h + delta)));
   }
 
   function finishSheetDrag(event: React.PointerEvent<HTMLButtonElement>) {
@@ -912,6 +946,10 @@ export function AtlasMap({
   }
 
   function settleSheet(height: number, delta: number) {
+    if (sheetFrame.current) {
+      window.cancelAnimationFrame(sheetFrame.current);
+      sheetFrame.current = 0;
+    }
     const limits = sheetLimits();
     const clamped = Math.min(limits.full, Math.max(limits.peek, height));
     let target: "peek" | "half" | "full" = "half";
@@ -924,9 +962,17 @@ export function AtlasMap({
     }
     if (delta < -28) target = clamped < limits.half ? "peek" : "half";
     else if (delta > 28) target = clamped > limits.half ? "full" : "half";
+    const next = limits[target];
+    liveSheet.current = next;
+    const sheet = sheetRef.current;
+    if (sheet) {
+      sheet.style.transition = "height 180ms ease-out";
+      sheet.style.height = `${next}px`;
+      sheet.parentElement?.style.setProperty("--sheet", `${next}px`);
+    }
     setSnap(target);
     setPanelOpen(target !== "peek");
-    setSheetPx(limits[target]);
+    setSheetPx(next);
   }
 
   function onContentPointerDown(event: React.PointerEvent<HTMLDivElement>) {
@@ -942,6 +988,7 @@ export function AtlasMap({
       h: current,
       moved: false,
       zone: !scroller || Boolean(target.closest("[data-sheet-drag]")),
+      limits,
     };
   }
 
@@ -965,15 +1012,14 @@ export function AtlasMap({
         return;
       }
       session.moved = true;
+      setSheetDragging(true);
       try {
         event.currentTarget.setPointerCapture(event.pointerId);
       } catch {
         // The pointer can already be gone; the drag still follows the move.
       }
     }
-    setSheetDragging(true);
-    const limits = sheetLimits();
-    setSheetPx(Math.min(limits.full, Math.max(limits.peek, session.h + delta)));
+    queueSheet(Math.min(session.limits.full, Math.max(session.limits.peek, session.h + delta)));
   }
 
   function onContentPointerUp(event: React.PointerEvent<HTMLDivElement>) {
@@ -1081,9 +1127,13 @@ export function AtlasMap({
 
       <aside
         ref={sheetRef}
-        style={compact && sheetPx != null ? { height: sheetPx } : undefined}
+        style={
+          compact && (liveSheet.current ?? sheetPx) != null
+            ? { height: liveSheet.current ?? sheetPx!, ...(sheetDragging ? { transition: "none" } : {}) }
+            : undefined
+        }
         className={`z-20 flex min-h-0 flex-col border-ink/10 bg-foam max-lg:absolute max-lg:inset-x-0 max-lg:bottom-18 max-lg:overflow-hidden max-lg:rounded-t-3xl max-lg:border-t max-lg:shadow-[0_-18px_40px_-24px_rgba(6,36,33,0.45)] lg:static lg:h-auto lg:w-[min(100%,24rem)] lg:shrink-0 lg:border-s lg:shadow-none ${
-          sheetDragging ? "max-lg:transition-none" : "transition-[height] duration-300 ease-out"
+          sheetDragging ? "max-lg:transition-none" : ""
         } ${sheetPx != null ? "" : panelOpen ? "max-lg:h-[46%]" : "max-lg:h-[4.5rem]"}`}
       >
         <button
@@ -1410,7 +1460,7 @@ function AreaList({
   const t = useTranslations("desk");
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-        <header data-sheet-drag="" className="shrink-0 border-b border-ink/10 px-3 py-2.5 max-lg:touch-pan-x sm:px-4 lg:touch-auto">
+        <header data-sheet-drag="" className="shrink-0 border-b border-ink/10 px-3 py-2.5 max-lg:touch-none sm:px-4 lg:touch-auto">
         <div className="flex items-baseline justify-between gap-3">
           <h1 className="min-w-0 truncate font-display text-xl">{t("areas")}</h1>
           <p className="shrink-0 text-xs text-mist">
@@ -1545,7 +1595,7 @@ function AreaDetail({
   const statsCurrency = stats.currency ?? countryCurrency;
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <header data-sheet-drag="" className="sticky top-0 z-10 border-b border-ink/10 bg-foam px-4 py-3 max-lg:touch-pan-x lg:touch-auto">
+      <header data-sheet-drag="" className="sticky top-0 z-10 border-b border-ink/10 bg-foam px-4 py-3 max-lg:touch-none lg:touch-auto">
         <Crumbs
           items={[
             { label: t("areas"), onClick: onBack },
@@ -1677,7 +1727,7 @@ function ProjectDetail({
     project.kind === "villa" ? t("villa") : project.kind === "townhouse" ? t("townhouse") : t("apartment");
   return (
     <div className="@container min-h-0 min-w-0 flex-1 overflow-y-auto">
-      <header data-sheet-drag="" className="sticky top-0 z-10 min-w-0 border-b border-ink/10 bg-foam px-4 py-3 max-lg:touch-pan-x lg:touch-auto">
+      <header data-sheet-drag="" className="sticky top-0 z-10 min-w-0 border-b border-ink/10 bg-foam px-4 py-3 max-lg:touch-none lg:touch-auto">
         <Crumbs
           items={[
             { label: t("areas"), onClick: onAreas },
@@ -1816,7 +1866,7 @@ function SearchPanel({
   const t = useTranslations("desk");
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header data-sheet-drag="" className="border-b border-ink/10 px-4 py-4 max-lg:touch-pan-x lg:touch-auto">
+      <header data-sheet-drag="" className="border-b border-ink/10 px-4 py-4 max-lg:touch-none lg:touch-auto">
         <h1 className="font-display text-2xl">{t("search")}</h1>
         <input
           value={query}
@@ -1893,7 +1943,7 @@ function NotesPanel({
   const selected = notes.find((note) => note.id === selectedId) ?? notes[0] ?? null;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header data-sheet-drag="" className="border-b border-ink/10 px-4 py-4 max-lg:touch-pan-x lg:touch-auto">
+      <header data-sheet-drag="" className="border-b border-ink/10 px-4 py-4 max-lg:touch-none lg:touch-auto">
         <h1 className="font-display text-2xl">{t("legendNotes")}</h1>
         <p className="mt-2 text-sm leading-7 text-mist">{notes.length ? t("legendCaptionNotes") : t("notesEmpty")}</p>
       </header>
@@ -1967,7 +2017,7 @@ function DrawPanel({
   const t = useTranslations("desk");
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header data-sheet-drag="" className="border-b border-ink/10 px-4 py-4 max-lg:touch-pan-x lg:touch-auto">
+      <header data-sheet-drag="" className="border-b border-ink/10 px-4 py-4 max-lg:touch-none lg:touch-auto">
         <h1 className="font-display text-2xl">{t("draw")}</h1>
         <p className="mt-2 text-sm leading-7 text-mist">{t("drawHint")}</p>
       </header>

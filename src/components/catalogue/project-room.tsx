@@ -4,18 +4,24 @@ import { useState } from "react";
 
 export function ProjectRoom({
   href,
+  locale,
   title,
   lede,
   openLabel,
   closeLabel,
 }: {
   href: string;
+  locale: "fa" | "en" | "ar";
   title: string;
   lede: string;
   openLabel: string;
   closeLabel: string;
 }) {
   const [open, setOpen] = useState(false);
+  function toggle() {
+    document.cookie = `locale=${locale}; path=/; max-age=31536000; samesite=lax`;
+    setOpen((value) => !value);
+  }
   return (
     <section className="mt-10">
       <h2 className="font-display text-xl leading-snug text-palm-deep">{title}</h2>
@@ -24,7 +30,7 @@ export function ProjectRoom({
         type="button"
         className="mt-4 inline-flex h-11 items-center rounded-lg bg-palm-deep px-4 text-sm font-medium text-[#e7f2ec]"
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggle}
       >
         {open ? closeLabel : openLabel}
       </button>

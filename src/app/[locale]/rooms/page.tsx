@@ -9,5 +9,5 @@ export default async function RoomsPage({ params }: { params: Promise<{ locale: 
   const t = await getTranslations({ locale, namespace: "nav" });
   const lang = locale === "en" || locale === "ar" ? locale : "fa";
 
-  return <RoomsFrame src="/meet" locale={lang} title={t("rooms")} retryLabel={t("rooms")} />;
+  return <RoomsFrame src={`/meet?lang=${lang}`} locale={lang} title={t("rooms")} retryLabel={t("rooms")} />;
 }
