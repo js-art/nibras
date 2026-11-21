@@ -4,6 +4,8 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // Socket.io calls /socket.io/ and the signal server only answers that path. A slash redirect turns it into /socket.io, which never connects.
+  skipTrailingSlashRedirect: true,
   experimental: {
     agentUpgrade: "security",
   },
