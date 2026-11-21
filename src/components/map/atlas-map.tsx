@@ -68,7 +68,7 @@ function readSheetFrame(sheet: HTMLElement | null) {
 }
 
 function sheetStops(span: number) {
-  const peek = 84;
+  const peek = 64;
   const full = Math.max(peek + 180, span);
   const half = Math.round(Math.min(full - 16, Math.max(peek + 200, span * 0.42)));
   return { peek, half, full };
@@ -922,7 +922,6 @@ export function AtlasMap({
     const limits = sheetLimits();
     const current = sheetRef.current?.getBoundingClientRect().height ?? limits.half;
     dragRef.current = { y: event.clientY, x: event.clientX, h: current, moved: false, zone: true, limits };
-    setSheetDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
@@ -930,7 +929,11 @@ export function AtlasMap({
     const session = dragRef.current;
     if (!session) return;
     const delta = session.y - event.clientY;
-    if (Math.abs(delta) > 6) session.moved = true;
+    if (Math.hypot(event.clientX - session.x, delta) < 14) return;
+    if (!session.moved) {
+      session.moved = true;
+      setSheetDragging(true);
+    }
     queueSheet(Math.min(session.limits.full, Math.max(session.limits.peek, session.h + delta)));
   }
 
@@ -941,8 +944,18 @@ export function AtlasMap({
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-    if (!session?.moved) return;
+    if (!session) return;
+    const travel = Math.hypot(event.clientX - session.x, event.clientY - session.y);
     ignoreClick.current = true;
+    window.setTimeout(() => {
+      ignoreClick.current = false;
+    }, 500);
+    if (travel < 14) {
+      const next = panelOpen ? "peek" : "half";
+      setSnap(next);
+      setPanelOpen(next !== "peek");
+      return;
+    }
     settleSheet(session.h + (session.y - event.clientY), session.y - event.clientY);
   }
 
@@ -1006,8 +1019,7 @@ export function AtlasMap({
       }
       const scroller = scrollableParent(event.target, contentRef.current);
       const atTop = !scroller || scroller.scrollTop <= 1;
-      const notFull = session.h < session.limits.full - 16;
-      const lift = session.zone || (delta > 0 && notFull && atTop) || (delta < 0 && atTop);
+      const lift = session.zone || (delta < 0 && atTop);
       if (!lift) {
         dragRef.current = null;
         return;
@@ -1036,10 +1048,7 @@ export function AtlasMap({
   }
 
   function toggleSheet() {
-    if (ignoreClick.current) {
-      ignoreClick.current = false;
-      return;
-    }
+    if (ignoreClick.current) return;
     const next = panelOpen ? "peek" : "half";
     setSnap(next);
     setPanelOpen(next !== "peek");
@@ -1140,7 +1149,9 @@ export function AtlasMap({
         <button
           type="button"
           dir={textDir}
-          className="flex min-h-14 w-full shrink-0 touch-none cursor-grab select-none flex-col items-center justify-center gap-1 px-4 py-3 active:cursor-grabbing lg:hidden"
+          className={`flex w-full shrink-0 touch-none cursor-grab select-none active:cursor-grabbing lg:hidden ${
+            snap === "peek" ? "h-16 items-center gap-3 px-4" : "h-6 items-center justify-center"
+          }`}
           onPointerDown={onSheetPointerDown}
           onPointerMove={onSheetPointerMove}
           onPointerUp={finishSheetDrag}
@@ -1149,13 +1160,16 @@ export function AtlasMap({
           aria-expanded={panelOpen}
           aria-label={panelOpen ? t("hidePanel") : t("showPanel")}
         >
-          <span className={`h-1.5 w-16 rounded-full ${sheetDragging ? "bg-ink/50" : "bg-ink/35"}`} aria-hidden />
           {snap === "peek" ? (
-            <span className="flex w-full items-center justify-between gap-2 text-sm font-medium text-ink">
-              <span className="truncate">{panelTitle}</span>
-              <PanelChevron open={false} />
-            </span>
-          ) : null}
+            <>
+              <span className="min-w-0 flex-1 truncate text-start text-sm font-medium text-ink">{panelTitle}</span>
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-sand text-ink" aria-hidden>
+                <PanelChevron open={false} />
+              </span>
+            </>
+          ) : (
+            <span className={`h-1 w-10 rounded-full ${sheetDragging ? "bg-ink/45" : "bg-ink/30"}`} aria-hidden />
+          )}
         </button>
         <div
           ref={contentRef}
@@ -1385,7 +1399,7 @@ function PanelChevron({ open }: { open: boolean }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+      className={`h-6 w-6 transition-transform ${open ? "rotate-180" : ""}`}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
@@ -1621,11 +1635,11 @@ function AreaDetail({
           onChange={onCurrencyFilter}
         />
       </header>
-      <div className="space-y-4 p-4">
+      <div className="space-y-3 px-4 pb-4 pt-3">
         <p className="text-sm text-mist">
           {city ? pick(city.names, locale) : ""}، {pick(area.names, locale)}
         </p>
-        <div data-sheet-drag="" className="relative h-40 w-full overflow-hidden rounded-3xl max-lg:touch-none">
+        <div className="relative h-40 w-full overflow-hidden rounded-3xl">
           <Cover src={area.image} sizes="(max-width: 1024px) 100vw, 24rem" />
         </div>
         <dl className="grid grid-cols-3 gap-2 text-center">
@@ -1753,8 +1767,8 @@ function ProjectDetail({
         />
         <h1 className="mt-2 break-words font-display text-xl leading-tight @min-[32rem]:text-2xl">{pick(project.names, locale)}</h1>
       </header>
-      <div className="min-w-0 space-y-4 p-4">
-        <div data-sheet-drag="" className="relative h-44 w-full overflow-hidden rounded-3xl max-lg:touch-none">
+      <div className="min-w-0 space-y-3 px-4 pb-4 pt-3">
+        <div className="relative h-44 w-full overflow-hidden rounded-3xl">
           <Cover src={project.image} sizes="(max-width: 1024px) 100vw, 24rem" />
         </div>
         {voice ? (
