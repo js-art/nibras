@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     const meet = process.env.GOMEET_INTERNAL_URL || "http://127.0.0.1:3010";
+    const room = process.env.GOMEET_ROOM_URL || "http://127.0.0.1:3011";
     const fonts = [
       "Lahzeh-Regular.woff2",
       "Lahzeh-Bold.woff2",
@@ -42,6 +43,8 @@ const nextConfig: NextConfig = {
     ];
     return {
       beforeFiles: [
+        { source: "/call", destination: `${room}/call` },
+        { source: "/call/:path*", destination: `${room}/call/:path*` },
         { source: "/meet", destination: `${meet}/meet` },
         { source: "/meet/:path*", destination: `${meet}/meet/:path*` },
         { source: "/emoji/:path*", destination: `${meet}/meet/emoji/:path*` },

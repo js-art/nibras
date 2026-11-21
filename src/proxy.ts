@@ -15,6 +15,7 @@ export default function proxy(request: NextRequest) {
   if (probeAction(request)) return new NextResponse(null, { status: 400 });
   const path = request.nextUrl.pathname;
   if (path === "/meet" || path.startsWith("/meet/")) return NextResponse.next();
+  if (path === "/call" || path.startsWith("/call/")) return NextResponse.next();
   const retired = path.match(/^\/(en|ar|fa)\/circle(\/.*)?$/);
   if (retired) {
     const url = request.nextUrl.clone();
