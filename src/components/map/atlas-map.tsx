@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { controlClass, Select } from "@/components/ui/controls";
 import {
   LngLatBounds,
@@ -960,8 +961,8 @@ export function AtlasMap({
     ] as const) {
       if (Math.abs(value - clamped) < Math.abs(limits[target] - clamped)) target = name;
     }
-    if (delta < -28) target = clamped < limits.half ? "peek" : "half";
-    else if (delta > 28) target = clamped > limits.half ? "full" : "half";
+    if (delta < -16) target = clamped < limits.half ? "peek" : "half";
+    else if (delta > 16) target = clamped > limits.half ? "full" : "half";
     const next = limits[target];
     liveSheet.current = next;
     const sheet = sheetRef.current;
@@ -1005,7 +1006,7 @@ export function AtlasMap({
       }
       const scroller = scrollableParent(event.target, contentRef.current);
       const atTop = !scroller || scroller.scrollTop <= 1;
-      const notFull = session.h < sheetLimits().full - 16;
+      const notFull = session.h < session.limits.full - 16;
       const lift = session.zone || (delta > 0 && notFull && atTop) || (delta < 0 && atTop);
       if (!lift) {
         dragRef.current = null;
@@ -1139,7 +1140,7 @@ export function AtlasMap({
         <button
           type="button"
           dir={textDir}
-          className="flex min-h-11 w-full shrink-0 touch-none cursor-grab select-none flex-col items-center justify-center gap-1 px-4 py-2 active:cursor-grabbing lg:hidden"
+          className="flex min-h-14 w-full shrink-0 touch-none cursor-grab select-none flex-col items-center justify-center gap-1 px-4 py-3 active:cursor-grabbing lg:hidden"
           onPointerDown={onSheetPointerDown}
           onPointerMove={onSheetPointerMove}
           onPointerUp={finishSheetDrag}
@@ -1148,7 +1149,7 @@ export function AtlasMap({
           aria-expanded={panelOpen}
           aria-label={panelOpen ? t("hidePanel") : t("showPanel")}
         >
-          <span className={`h-1.5 w-12 rounded-full ${sheetDragging ? "bg-ink/40" : "bg-ink/20"}`} aria-hidden />
+          <span className={`h-1.5 w-16 rounded-full ${sheetDragging ? "bg-ink/50" : "bg-ink/35"}`} aria-hidden />
           {snap === "peek" ? (
             <span className="flex w-full items-center justify-between gap-2 text-sm font-medium text-ink">
               <span className="truncate">{panelTitle}</span>
@@ -1404,6 +1405,14 @@ function EditPencilIcon() {
   );
 }
 
+function Cover({ src, sizes }: { src: string; sizes: string }) {
+  const image = src || FALLBACK_IMAGE;
+  if (!image.startsWith("/")) {
+    return <img src={image} alt="" className="h-full w-full object-cover" />;
+  }
+  return <Image src={image} alt="" fill sizes={sizes} quality={65} className="object-cover" />;
+}
+
 function CurrencyFilterBar({
   currencies,
   value,
@@ -1467,7 +1476,8 @@ function AreaList({
             {areas.length} {t("areas")}
           </p>
         </div>
-        <div className="mt-2 flex min-w-0 items-center gap-2">
+        <div className="mt-2 flex flex-col gap-2">
+          <div className="flex min-w-0 items-center gap-2">
           <div className="flex h-13 shrink-0 rounded-lg bg-sand p-1" role="group" aria-label={t("areas")}>
             {(
               [
@@ -1486,16 +1496,8 @@ function AreaList({
               </button>
             ))}
           </div>
-          <div className="min-w-0 flex-1" onPointerDown={(event) => event.stopPropagation()}>
-            <Select
-              value={cities.some((city) => city.id === cityId) ? cityId : ""}
-              onChange={onCity}
-              placeholder={t("areas")}
-              options={cities.map((city) => ({ value: city.id, label: pick(city.names, locale) }))}
-            />
-          </div>
           {countryCurrencies.length > 1 ? (
-            <div className="w-[38%] min-w-0 max-w-36 shrink">
+            <div className="min-w-0 flex-1">
               <CurrencyFilterBar
                 currencies={countryCurrencies}
                 value={currencyFilter}
@@ -1504,6 +1506,15 @@ function AreaList({
               />
             </div>
           ) : null}
+          </div>
+          <div className="min-w-0" onPointerDown={(event) => event.stopPropagation()}>
+            <Select
+              value={cities.some((city) => city.id === cityId) ? cityId : ""}
+              onChange={onCity}
+              placeholder={t("areas")}
+              options={cities.map((city) => ({ value: city.id, label: pick(city.names, locale) }))}
+            />
+          </div>
         </div>
       </header>
       <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-x-2 gap-y-3 overflow-y-auto p-3 sm:gap-3 sm:p-4">
@@ -1512,7 +1523,7 @@ function AreaList({
           return (
             <button key={area.id} type="button" onClick={() => onArea(area.id)} className="min-w-0 text-start">
               <span className="relative block aspect-[4/3] overflow-hidden rounded-2xl">
-                <img src={area.image || FALLBACK_IMAGE} alt="" className="h-full w-full object-cover" />
+                <Cover src={area.image} sizes="(max-width: 1024px) 46vw, 11rem" />
                 <span className="absolute end-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-xs font-medium text-ink">{stats.count}</span>
               </span>
               <span className="mt-1.5 line-clamp-2 text-sm font-medium leading-5 text-ink">{pick(area.names, locale)}</span>
@@ -1614,7 +1625,9 @@ function AreaDetail({
         <p className="text-sm text-mist">
           {city ? pick(city.names, locale) : ""}، {pick(area.names, locale)}
         </p>
-        <img src={area.image || FALLBACK_IMAGE} alt="" className="h-40 w-full rounded-3xl object-cover" />
+        <div data-sheet-drag="" className="relative h-40 w-full overflow-hidden rounded-3xl max-lg:touch-none">
+          <Cover src={area.image} sizes="(max-width: 1024px) 100vw, 24rem" />
+        </div>
         <dl className="grid grid-cols-3 gap-2 text-center">
           {[
             [
@@ -1666,7 +1679,9 @@ function AreaDetail({
                     onClick={() => onProject(item.id)}
                     className="flex w-full gap-3 rounded-2xl p-2 text-start hover:bg-sand"
                   >
-                    <img src={item.image || FALLBACK_IMAGE} alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" />
+                    <span className="relative h-16 w-20 shrink-0 overflow-hidden rounded-xl">
+                      <Cover src={item.image} sizes="80px" />
+                    </span>
                     <span className="min-w-0">
                       <span className="block truncate font-medium">{pick(item.names, locale)}</span>
                       <span className="block truncate text-xs text-mist">
@@ -1739,7 +1754,9 @@ function ProjectDetail({
         <h1 className="mt-2 break-words font-display text-xl leading-tight @min-[32rem]:text-2xl">{pick(project.names, locale)}</h1>
       </header>
       <div className="min-w-0 space-y-4 p-4">
-        <img src={project.image || FALLBACK_IMAGE} alt="" className="h-44 w-full rounded-3xl object-cover" />
+        <div data-sheet-drag="" className="relative h-44 w-full overflow-hidden rounded-3xl max-lg:touch-none">
+          <Cover src={project.image} sizes="(max-width: 1024px) 100vw, 24rem" />
+        </div>
         {voice ? (
           <p className="text-sm leading-6 text-ink">
             {circle("communityMark")}{" "}

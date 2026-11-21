@@ -77,11 +77,16 @@ export function Select({
   function place() {
     const rect = buttonRef.current?.getBoundingClientRect();
     if (!rect) return;
+    const margin = 8;
+    const width = Math.min(window.innerWidth - margin * 2, Math.max(rect.width, 220));
+    let left = rect.left;
+    if (left + width > window.innerWidth - margin) left = window.innerWidth - margin - width;
+    if (left < margin) left = margin;
     setBox({
       top: rect.bottom + 4,
-      left: rect.left,
-      width: rect.width,
-      maxHeight: Math.max(72, window.innerHeight - rect.bottom - 8),
+      left,
+      width,
+      maxHeight: Math.max(160, window.innerHeight - rect.bottom - margin),
     });
   }
 
@@ -162,7 +167,7 @@ export function Select({
                     setOpen(false);
                   }}
                 >
-                  <span className="truncate">{option.label}</span>
+                  <span className="min-w-0 flex-1 whitespace-normal text-start">{option.label}</span>
                   {selected ? <Check /> : null}
                 </button>
               </li>
