@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useLocale } from "next-intl";
 
 export const controlClass =
-  "h-13 w-full min-w-0 rounded-lg border border-[#c5d0c9] bg-white px-3 text-sm text-ink outline-none transition-[border-color,box-shadow] placeholder:text-[#5c6b63] hover:border-[#8eaa9c] focus-visible:border-palm focus-visible:ring-[3px] focus-visible:ring-palm/30 disabled:cursor-not-allowed disabled:bg-[#f3f6f4] disabled:text-ink/45";
+  "box-border h-13 w-full min-w-0 rounded-lg border border-[#c5d0c9] bg-white px-4 py-2.5 text-sm leading-5 text-ink outline-none transition-[border-color,box-shadow] placeholder:text-[#5c6b63] hover:border-[#8eaa9c] focus-visible:border-palm focus-visible:ring-[3px] focus-visible:ring-palm/30 disabled:cursor-not-allowed disabled:bg-[#f3f6f4] disabled:text-ink/45";
 
 export const areaClass =
   "min-h-28 w-full resize-y rounded-lg border border-[#c5d0c9] bg-white px-3 py-3 text-sm leading-7 text-ink outline-none transition-[border-color,box-shadow] placeholder:text-[#5c6b63] hover:border-[#8eaa9c] focus-visible:border-palm focus-visible:ring-[3px] focus-visible:ring-palm/30 disabled:cursor-not-allowed disabled:bg-[#f3f6f4]";

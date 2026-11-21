@@ -219,7 +219,7 @@ export function ProjectBook({ atlas, query }: { atlas: Atlas; query: BookQuery }
             {projects.length === 0 ? (
               <p className="py-16 text-mist">{t("empty")}</p>
             ) : (
-              <ul className={query.view === "grid" ? "mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" : "mt-4 space-y-4"}>
+              <ul className={query.view === "grid" ? "mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" : "mt-6 space-y-4"}>
                 {projects.map((project) => (
                   <ProjectRow
                     key={project.id}
