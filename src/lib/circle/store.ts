@@ -994,10 +994,8 @@ export async function enterCircle(input: { handle: string; password?: string }):
     ? await db.circleProfile.findUnique({ where: { email: key } })
     : await db.circleProfile.findUnique({ where: { handle: key } });
   if (!row && byEmail) row = await openFromMeet(key, password);
-  if (!row) throw new CircleError(byEmail ? "denied" : "missing", byEmail ? 401 : 404);
-  if (row.passwordHash) {
-    if (!password || !verifyPassword(password, row.passwordHash)) throw new CircleError("denied", 401);
-  } else if (!row.sample) {
+  if (!row || row.sample) throw new CircleError(byEmail ? "denied" : "missing", byEmail ? 401 : 404);
+  if (!row.passwordHash || !password || !verifyPassword(password, row.passwordHash)) {
     throw new CircleError("denied", 401);
   }
   return viewerFrom(row);

@@ -105,7 +105,6 @@ export function CircleShell({
     };
   }, [showNotices]);
 
-  const samples = people.filter((person) => person.sample);
   const suggestions = people.filter((person) => person.id !== viewer?.id && !person.followedByMe).slice(0, 4);
 
   const tail =
@@ -218,12 +217,12 @@ export function CircleShell({
           ) : null}
           {mode === "feed" && (!viewer || viewer.sample) ? (
             <div className="px-3 pt-3">
-              <Gate viewer={viewer} samples={samples} intent="create" />
+              <Gate viewer={viewer} intent="create" />
             </div>
           ) : null}
           {!viewer && mode !== "feed" ? (
             <div className="px-3 pt-3 xl:hidden">
-              <Gate viewer={viewer} samples={samples} />
+              <Gate viewer={viewer} />
             </div>
           ) : null}
           <div className="pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-10">
@@ -236,7 +235,7 @@ export function CircleShell({
 
         <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-72 shrink-0 flex-col gap-3 overflow-y-auto py-6 xl:flex">
           <HallSearch inputId="majlis-search" />
-          {!viewer && mode !== "feed" ? <Gate viewer={viewer} samples={samples} /> : null}
+          {!viewer && mode !== "feed" ? <Gate viewer={viewer} /> : null}
           <ForumRail tags={tags} suggestions={suggestions} />
         </aside>
       </div>
@@ -522,18 +521,16 @@ function ForumRail({ suggestions }: { tags: CircleTagView[]; suggestions: Circle
 
 function Gate({
   viewer,
-  samples,
   intent = "enter",
 }: {
   viewer: CircleViewer | null;
-  samples: CirclePerson[];
   intent?: "enter" | "create";
 }) {
   const t = useTranslations("circle");
   const router = useRouter();
   const [error, setError] = useState("");
   const [invalid, setInvalid] = useState<Partial<Record<"displayName" | "handle" | "email" | "password" | "role", string>>>({});
-  const [panel, setPanel] = useState<"login" | "join" | "sample" | null>(null);
+  const [panel, setPanel] = useState<"login" | "join" | null>(null);
   const [pending, setPending] = useState(false);
   const [role, setRole] = useState("investor");
 
@@ -593,15 +590,10 @@ function Gate({
               {t("signUp")}
             </button>
           </div>
-          {viewer?.sample ? null : (
-            <button type="button" className="c-press mt-3 w-full text-sm font-medium text-[var(--c-palm)]" onClick={() => { setError(""); setPanel("sample"); }}>
-              {t("stepInTitle")}
-            </button>
-          )}
         </>
       ) : (
         <h2 className="text-lg font-semibold">
-          {panel === "join" ? t("createAccount") : panel === "login" ? t("login") : t("stepInTitle")}
+          {panel === "join" ? t("createAccount") : t("login")}
         </h2>
       )}
       {panel === "login" ? (
@@ -772,34 +764,6 @@ function Gate({
             {t("signUp")}
           </button>
         </form>
-      ) : null}
-      {panel === "sample" ? (
-        <>
-          <p className="c-ink-2 mt-2 text-sm leading-6">{t("stepInLede")}</p>
-          <ul className="mt-3">
-            {samples.map((person) => (
-              <li key={person.id}>
-                <button
-                  type="button"
-                  disabled={pending}
-                  className="c-row c-press flex w-full items-center justify-between gap-3 rounded-2xl px-2 py-2 text-start"
-                  onClick={() => run(() => send("/api/v1/circle/session", { handle: person.handle }).then(() => undefined))}
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <Face name={person.displayName} seed={person.handle} />
-                    <span className="min-w-0">
-                      <span className="block truncate font-semibold">{person.displayName}</span>
-                      <span className="c-meta block truncate">
-                        {deskRole(person.role, t)} · {person.city}
-                      </span>
-                    </span>
-                  </span>
-                  <span className="c-pill shrink-0 px-3 py-1.5 text-xs">{t("stepIn")}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
       ) : null}
       {panel ? (
         <button
