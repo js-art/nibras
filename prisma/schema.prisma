@@ -85,12 +85,17 @@ model Project {
   units       Json
   payment     Json
   brochure    Json      @default("{}")
+  introducedById String?
   updatedAt   DateTime  @default(now())
-  area        Area      @relation(fields: [areaId], references: [id], onDelete: Cascade)
-  developer   Developer @relation(fields: [developerId], references: [id], onDelete: Restrict)
+  area        Area         @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  introducedBy CircleProfile? @relation("IntroducedProjects", fields: [introducedById], references: [id], onDelete: SetNull)
+  developer   Developer    @relation(fields: [developerId], references: [id], onDelete: Restrict)
+  circlePosts CirclePost[]
+  desks       CircleDesk[]
 
   @@index([areaId])
   @@index([developerId])
+  @@index([introducedById])
   @@index([updatedAt])
 }
 
@@ -103,4 +108,168 @@ model Suggestion {
 
   @@index([order])
   @@index([updatedAt])
+}
+
+/// Social identity for the agent–investor circle. Ported from Dinka's user graph
+/// and extended with a role that sits next to a catalogue project.
+model CircleProfile {
+  id           String   @id
+  handle       String   @unique
+  email        String?  @unique
+  displayName  String
+  role         String
+  bio          String   @default("")
+  city         String   @default("")
+  focus        String   @default("")
+  passwordHash String?
+  sample       Boolean  @default(false)
+  banned       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  followingEdges CircleFollow[]    @relation("CircleFollowerSide")
+  followerEdges  CircleFollow[]    @relation("CircleFollowedSide")
+  posts          CirclePost[]
+  comments       CircleComment[]
+  reactions      CircleReaction[]
+  bookmarks      CircleBookmark[]
+  notices        CircleNotice[]    @relation("NoticeRecipient")
+  acted          CircleNotice[]    @relation("NoticeActor")
+  blocksMade     CircleBlock[]     @relation("BlocksMade")
+  blocksGot      CircleBlock[]     @relation("BlocksReceived")
+  desks          CircleDesk[]
+  introducedProjects Project[] @relation("IntroducedProjects")
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model CircleDesk {
+  profileId String
+  projectId String
+  createdAt DateTime      @default(now())
+  profile   CircleProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, projectId])
+  @@index([projectId])
+}
+
+model CircleFollow {
+  id          String        @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime      @default(now())
+  follower    CircleProfile @relation("CircleFollowerSide", fields: [followerId], references: [id], onDelete: Cascade)
+  following   CircleProfile @relation("CircleFollowedSide", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model CircleBlock {
+  id        String        @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime      @default(now())
+  blocker   CircleProfile @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   CircleProfile @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model CirclePost {
+  id         String         @id
+  authorId   String
+  body       Json
+  kind       String         @default("note")
+  visibility String         @default("circle")
+  projectId  String?
+  place      Json?
+  sample     Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  author     CircleProfile  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  project    Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  comments   CircleComment[]
+  reactions  CircleReaction[]
+  bookmarks  CircleBookmark[]
+  tags       CirclePostTag[]
+  notices    CircleNotice[]
+
+  @@index([authorId, createdAt])
+  @@index([projectId])
+  @@index([visibility, createdAt])
+  @@index([kind])
+}
+
+model CircleComment {
+  id        String        @id @default(cuid())
+  postId    String
+  authorId  String
+  body      String
+  createdAt DateTime      @default(now())
+  post      CirclePost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    CircleProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([authorId])
+}
+
+model CircleReaction {
+  id        String        @id @default(cuid())
+  postId    String
+  userId    String
+  type      String
+  createdAt DateTime      @default(now())
+  post      CirclePost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      CircleProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+model CircleBookmark {
+  id        String        @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime      @default(now())
+  post      CirclePost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      CircleProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+model CircleTag {
+  id       String          @id @default(cuid())
+  tag      String          @unique
+  useCount Int             @default(0)
+  posts    CirclePostTag[]
+
+  @@index([useCount])
+}
+
+model CirclePostTag {
+  postId String
+  tagId  String
+  post   CirclePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    CircleTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+
+model CircleNotice {
+  id        String        @id @default(cuid())
+  userId    String
+  actorId   String
+  type      String
+  postId    String?
+  createdAt DateTime      @default(now())
+  readAt    DateTime?
+  user      CircleProfile @relation("NoticeRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor     CircleProfile @relation("NoticeActor", fields: [actorId], references: [id], onDelete: Cascade)
+  post      CirclePost?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

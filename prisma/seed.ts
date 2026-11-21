@@ -3,6 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { seedAtlas } from "../src/data/atlas";
 import { seedSite } from "../src/data/site";
+import { upsertCircleSamples } from "../src/lib/circle/seed";
 import { hashPassword } from "../src/lib/password";
 
 const connectionString = process.env.DATABASE_URL;
@@ -102,8 +103,10 @@ async function main() {
     });
   }
 
+  await upsertCircleSamples(db);
+
   console.log(
-    `Seeded atlas (${seedAtlas.projects.length} projects), site settings, and admin user.`,
+    `Seeded atlas (${seedAtlas.projects.length} projects), site settings, admin user, and the circle.`,
   );
 }
 

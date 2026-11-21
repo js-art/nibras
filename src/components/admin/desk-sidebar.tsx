@@ -6,7 +6,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { DESK_PATH } from "@/lib/desk";
 import { cn } from "@/lib/utils";
 
-export type DeskId = "atlas" | "site" | "users";
+export type DeskId = "atlas" | "site" | "users" | "circle";
 
 type DeskSidebarProps = {
   desk: DeskId;
@@ -15,10 +15,11 @@ type DeskSidebarProps = {
   items?: { id: string; label: string; active?: boolean; onSelect: () => void }[];
 };
 
-const DESKS: { id: DeskId; href: string; labelKey: "deskAtlas" | "deskSite" | "deskUsers" }[] = [
+const DESKS: { id: DeskId; href: string; labelKey: "deskAtlas" | "deskSite" | "deskUsers" | "deskCircle" }[] = [
   { id: "atlas", href: DESK_PATH, labelKey: "deskAtlas" },
   { id: "site", href: `${DESK_PATH}/site`, labelKey: "deskSite" },
   { id: "users", href: `${DESK_PATH}/users`, labelKey: "deskUsers" },
+  { id: "circle", href: `${DESK_PATH}/circle`, labelKey: "deskCircle" },
 ];
 
 export function DeskSidebar({ desk, brand = "Savat1", items = [] }: DeskSidebarProps) {
@@ -39,7 +40,7 @@ export function DeskSidebar({ desk, brand = "Savat1", items = [] }: DeskSidebarP
         <p className="mt-1 text-sm text-paper/70">{t("deskNavHint")}</p>
 
         <div
-          className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-black/20 p-1"
+          className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-black/20 p-1"
           role="tablist"
           aria-label={t("deskWorkspace")}
         >

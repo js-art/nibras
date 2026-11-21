@@ -2,7 +2,8 @@ import { connection } from "next/server";
 import { setRequestLocale } from "next-intl/server";
 import { AtlasMap } from "@/components/map/atlas-map";
 import { hasAdminSession } from "@/lib/admin-auth";
-import { readAtlas } from "@/lib/atlas-store";
+import { readPublicAtlas } from "@/lib/atlas-store";
+import { communityVoices } from "@/lib/circle/store";
 import { pageMetadata } from "@/lib/seo";
 import { readSite } from "@/lib/site-store";
 
@@ -32,22 +33,24 @@ export default async function MapPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ area?: string | string[]; city?: string | string[] }>;
+  searchParams: Promise<{ area?: string | string[]; city?: string | string[]; note?: string | string[]; project?: string | string[] }>;
 }) {
   const { locale } = await params;
   const query = await searchParams;
   setRequestLocale(locale);
   await connection();
-  const atlas = await readAtlas();
-  const isAdmin = await hasAdminSession();
+  const [atlas, voices, isAdmin] = await Promise.all([readPublicAtlas(), communityVoices(), hasAdminSession()]);
 
   return (
-    <div className="h-[calc(100dvh-4rem)]">
+    <div className="h-[calc(100svh-4rem)] overflow-hidden lg:h-[calc(100dvh-4rem)]">
       <AtlasMap
         atlas={atlas}
         locale={locale}
         initialArea={one(query.area)}
         initialCity={one(query.city)}
+        initialNote={one(query.note)}
+        initialProject={one(query.project)}
+        community={voices}
         isAdmin={isAdmin}
       />
     </div>

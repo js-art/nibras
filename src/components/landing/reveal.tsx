@@ -32,22 +32,15 @@ export function Reveal({
     if (!node) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced || motion === "enter") {
-      const frame = requestAnimationFrame(() => setShown(true));
-      return () => cancelAnimationFrame(frame);
+      setShown(true);
+      return;
     }
-    const reveal = () => {
-      const box = node.getBoundingClientRect();
-      const view = window.innerHeight || 1;
-      const onScreen = box.bottom > 8 && box.top < view - 8;
-      setShown(onScreen);
-    };
-    reveal();
-    window.addEventListener("scroll", reveal, { passive: true });
-    window.addEventListener("resize", reveal);
-    return () => {
-      window.removeEventListener("scroll", reveal);
-      window.removeEventListener("resize", reveal);
-    };
+    const observer = new IntersectionObserver(
+      ([entry]) => setShown((current) => (current === entry.isIntersecting ? current : entry.isIntersecting)),
+      { rootMargin: "-8px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
   }, [motion]);
 
   return (

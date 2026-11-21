@@ -6,17 +6,23 @@ import { usePathname } from "@/i18n/navigation";
 import { isDeskPath } from "@/lib/desk";
 
 export function MapFooterGate({ children }: { children: React.ReactNode }) {
-  return (
-    <Suspense fallback={children}>
-      <FooterGate>{children}</FooterGate>
-    </Suspense>
-  );
+  const pathname = usePathname();
+  if (pathname === "/map" || pathname === "/rooms" || pathname === "/majlis" || pathname.startsWith("/majlis/") || isDeskPath(pathname)) return null;
+  // The project list is the only page that reads ?view=. Calling
+  // useSearchParams on every route suspends the footer and replaces it
+  // after hydration, which reloads the project sheet in a loop.
+  if (pathname === "/projects") {
+    return (
+      <Suspense fallback={null}>
+        <ProjectListFooter>{children}</ProjectListFooter>
+      </Suspense>
+    );
+  }
+  return children;
 }
 
-function FooterGate({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+function ProjectListFooter({ children }: { children: React.ReactNode }) {
   const view = useSearchParams().get("view");
-  if (pathname === "/map" || isDeskPath(pathname)) return null;
-  if (pathname === "/projects" && view !== "grid") return null;
+  if (view !== "grid") return null;
   return children;
 }

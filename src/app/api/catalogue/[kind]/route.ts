@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { readAtlas } from "@/lib/atlas-store";
+import { readPublicAtlas } from "@/lib/atlas-store";
 import {
   parsePage,
   parsePageSize,
@@ -20,7 +20,7 @@ export async function GET(
   }
   const kind = raw as CatalogueKind;
   const url = new URL(request.url);
-  const atlas = await readAtlas();
+  const atlas = await readPublicAtlas();
   const opts = {
     page: parsePage(url.searchParams.get("page") ?? undefined),
     pageSize: parsePageSize(url.searchParams.get("pageSize") ?? undefined),

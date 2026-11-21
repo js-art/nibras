@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { EntityCard } from "@/components/catalogue/entity-card";
 import { Pagination } from "@/components/catalogue/pagination";
 import { areaStats, currencyOf, fullAmount, pick, pickPlain} from "@/data/atlas";
-import { readAtlas } from "@/lib/atlas-store";
+import { readPublicAtlas } from "@/lib/atlas-store";
 import { DEFAULT_PAGE_SIZE, parsePage, queryCatalogue } from "@/lib/catalogue-page";
 import { pageMetadata } from "@/lib/seo";
 import { readSite } from "@/lib/site-store";
@@ -38,7 +38,7 @@ export default async function AreasPage({
   setRequestLocale(locale);
   await connection();
   const t = await getTranslations({ locale, namespace: "areas" });
-  const atlas = await readAtlas();
+  const atlas = await readPublicAtlas();
   const result = queryCatalogue(atlas, "areas", {
     page: parsePage(query.page),
     pageSize: DEFAULT_PAGE_SIZE,

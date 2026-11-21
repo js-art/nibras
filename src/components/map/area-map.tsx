@@ -22,6 +22,7 @@ import {
   shortMillions,
   type AreaId,
 } from "@/data/catalogue";
+import { hostedImage } from "@/data/atlas";
 import { useMapStyle } from "@/lib/hooks/use-map-style";
 import { mapStyleUrl } from "@/lib/map-style";
 
@@ -346,7 +347,7 @@ export function AreaMap({
       {area && !teaser ? (
         <aside className="absolute end-3 top-3 z-10 flex max-h-[calc(100%-1.5rem)] w-[min(100%-1.5rem,22rem)] flex-col overflow-hidden rounded-3xl border border-ink/10 bg-foam shadow-xl max-md:top-auto max-md:bottom-3 max-md:max-h-[48%]">
           <img
-            src={area.image}
+            src={hostedImage(area.image)}
             alt=""
             className="h-36 w-full object-cover"
           />

@@ -1,11 +1,11 @@
 import { connection } from "next/server";
 import { normalizeAtlas } from "@/data/atlas";
 import { hasAdminSession } from "@/lib/admin-auth";
-import { readAtlas, writeAtlas } from "@/lib/atlas-store";
+import { readAtlas, readPublicAtlas, writeAtlas } from "@/lib/atlas-store";
 
 export async function GET() {
   await connection();
-  return Response.json(await readAtlas());
+  return Response.json(await readPublicAtlas());
 }
 
 export async function PUT(request: Request) {

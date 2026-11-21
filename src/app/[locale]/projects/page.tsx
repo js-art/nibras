@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import { setRequestLocale } from "next-intl/server";
 import { ProjectBook } from "@/components/catalogue/project-book";
-import { readAtlas } from "@/lib/atlas-store";
+import { readPublicAtlas } from "@/lib/atlas-store";
 import { bookQueryFrom } from "@/lib/project-book";
 import { pageMetadata } from "@/lib/seo";
 import { readSite } from "@/lib/site-store";
@@ -34,7 +34,7 @@ export default async function ProjectsPage({
   const raw = await searchParams;
   setRequestLocale(locale);
   await connection();
-  const atlas = await readAtlas();
+  const atlas = await readPublicAtlas();
   const url = new URLSearchParams();
   for (const [key, value] of Object.entries(raw)) {
     const one = Array.isArray(value) ? value[0] : value;

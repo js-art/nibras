@@ -1,0 +1,686 @@
+/* Circle sits on the Nibras stone, with the night garden for the rail and the dock. */
+.circle-app {
+  overflow-x: clip;
+  --c-ground: #eef3f0;
+  --c-ink: #12241c;
+  --c-ink-2: #3e5248;
+  --c-ink-3: #3e5248;
+  --c-line: #d5dfd8;
+  --c-field: #c5d0c9;
+  --c-night: #062421;
+  --c-palm: #0f7a72;
+  --c-brass: #e4c27a;
+  --c-paper: #e7f2ec;
+  --c-ember: #8f2d2d;
+  background: var(--c-ground);
+  color: var(--c-ink);
+  min-height: calc(100dvh - 4rem);
+}
+
+.circle-app a {
+  color: inherit;
+}
+
+.circle-app :focus-visible {
+  outline: 3px solid var(--c-palm);
+  outline-offset: 2px;
+}
+
+.circle-app .c-rail {
+  background: var(--c-night);
+  color: var(--c-paper);
+  overflow: hidden;
+}
+
+.circle-app .c-rail :focus-visible {
+  outline-color: var(--c-brass);
+}
+
+.circle-app .c-mark {
+  font-family: "LahzehFaNum", "Peyda", "WagzyDisplay", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  font-size: 1.25rem;
+  color: var(--c-brass);
+}
+
+.circle-app .c-meta {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--c-ink-2);
+}
+
+.circle-app .c-rail .c-meta {
+  color: #d5dfd8;
+}
+
+.circle-app .c-tile {
+  background: #fff;
+  border: 1px solid var(--c-line);
+  border-radius: 8px;
+}
+
+.circle-app .c-post {
+  background: transparent;
+}
+
+.circle-app .c-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+.circle-app .c-card {
+  background: #fff;
+  border: 1px solid var(--c-line);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgb(6 36 33 / 0.08);
+}
+
+.circle-app .c-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.circle-app .c-pick {
+  height: 220px;
+  overflow: hidden;
+  border: 1px solid var(--c-line);
+  border-radius: 8px;
+}
+
+.circle-app .c-pick.is-range {
+  height: 280px;
+}
+
+.circle-app .c-pick-frame {
+  position: relative;
+}
+
+.circle-app .c-pick-draw {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.circle-app .c-pick-draw polygon,
+.circle-app .c-pick-draw polyline {
+  fill: rgba(15, 122, 114, 0.28);
+  stroke: #062421;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.circle-app .c-pick-draw polygon.is-yard {
+  fill: rgba(228, 194, 122, 0.35);
+  stroke: #8a6a32;
+  stroke-width: 2;
+}
+
+.circle-app .c-pick-draw polyline {
+  fill: none;
+}
+
+.circle-app .c-token {
+  unicode-bidi: isolate;
+  font-weight: 600;
+}
+
+.circle-app .c-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--c-line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.circle-app .c-find {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.circle-app .c-find label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--c-ink);
+}
+
+.circle-app .c-frost {
+  background: var(--c-ground);
+}
+
+.circle-app .c-introduce {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--c-paper);
+}
+
+.circle-app .c-facts {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.circle-app .c-facts-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  min-width: 0;
+}
+
+.circle-app .c-fact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.circle-app .c-fact-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.circle-app .c-fact .c-field,
+.circle-app .c-fact-range .c-field {
+  width: 100%;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.circle-app .c-fact-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.circle-app .c-facts-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.circle-app .c-facts-foot .c-pill {
+  width: 100%;
+  height: 52px;
+}
+
+@container (min-width: 24rem) {
+  .circle-app .c-fact {
+    grid-template-columns: minmax(6.5rem, 8.75rem) minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
+@container (min-width: 42rem) {
+  .circle-app .c-facts-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .circle-app .c-fact-size {
+    grid-column: 1 / -1;
+  }
+
+  .circle-app .c-facts-foot {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .circle-app .c-facts-foot .c-pill {
+    width: auto;
+    min-width: 10rem;
+  }
+}
+
+.circle-app .c-notices {
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: min(70vh, 28rem);
+  overflow: auto;
+  border: 1px solid var(--c-line);
+  border-radius: 8px;
+  background: var(--c-ground);
+  padding: 12px;
+  box-shadow: 0 12px 28px rgb(6 36 33 / 0.16);
+}
+
+.circle-app .c-dock {
+  background: var(--c-night);
+  color: var(--c-paper);
+  box-shadow: 0 12px 28px rgb(6 36 33 / 0.18);
+}
+
+.circle-app .c-dock a[aria-current="page"] {
+  color: var(--c-brass);
+}
+
+.circle-app .c-press:active {
+  transform: scale(0.98);
+}
+
+.circle-app .c-field,
+.circle-app .c-area {
+  color: var(--c-ink);
+  background: #fff;
+  border: 1px solid var(--c-field);
+  border-radius: 8px;
+}
+
+.circle-app .c-field {
+  height: 52px;
+  width: 100%;
+  padding-inline: 12px;
+  font-size: 1rem;
+}
+
+.circle-app .c-reply {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.circle-app .c-reply .c-pill {
+  height: 52px;
+  flex: none;
+  padding-inline: 20px;
+  font-size: 1rem;
+}
+
+.circle-app .c-area {
+  width: 100%;
+  resize: vertical;
+  padding: 12px;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.circle-app .c-write {
+  min-height: 8.5rem;
+}
+
+.circle-app .c-editor-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.circle-app .c-editor-bar button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+}
+
+.circle-app .c-editor-bar button[aria-pressed="true"] {
+  background: var(--c-night);
+  color: var(--c-paper);
+  border-color: var(--c-night);
+}
+
+.circle-app .c-editor-surface {
+  overflow: hidden;
+  border: 1px solid var(--c-field);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.circle-app .c-editor-surface:focus-within {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--c-palm);
+  border-width: 3px;
+}
+
+.circle-app .c-editor-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--c-line);
+  padding: 8px;
+}
+
+.circle-app .c-editor-link-input {
+  min-width: 0;
+  flex: 1;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  padding-inline: 8px;
+  color: var(--c-ink);
+  font-size: 1rem;
+  text-align: left;
+  outline: none;
+}
+
+.circle-app .c-editor-link .c-pill {
+  height: 40px;
+  flex: none;
+  padding-inline: 14px;
+  font-size: 0.875rem;
+}
+
+.circle-app .c-note-input {
+  min-height: 8.5rem;
+  padding: 12px;
+  font-size: 1rem;
+  line-height: 1.75;
+  outline: none;
+}
+
+.circle-app .c-note-input p.is-editor-empty:first-child::before {
+  float: inline-start;
+  height: 0;
+  color: var(--c-ink-3);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.circle-app .c-note-input ul,
+.circle-app .c-note ul {
+  margin: 0.75rem 0;
+  padding-inline-start: 1.25rem;
+  list-style: disc;
+}
+
+.circle-app .c-note-input ol,
+.circle-app .c-note ol {
+  margin: 0.75rem 0;
+  padding-inline-start: 1.25rem;
+  list-style: decimal;
+}
+
+.circle-app .c-note-input a,
+.circle-app .c-note a {
+  color: var(--c-palm);
+  text-decoration: underline;
+}
+
+.circle-app .c-note-input blockquote,
+.circle-app .c-note blockquote {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: var(--c-paper);
+}
+
+.circle-app .c-note p + p,
+.circle-app .c-note-input p + p {
+  margin-top: 0.75rem;
+}
+
+.circle-app .c-area:focus,
+.circle-app .c-field:focus,
+.circle-app .c-area:focus-visible,
+.circle-app .c-field:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--c-palm);
+  border-width: 3px;
+}
+
+.circle-app .c-field.is-invalid,
+.circle-app .c-field.is-invalid:focus,
+.circle-app .c-field.is-invalid:focus-visible,
+.circle-app .is-invalid button {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--c-ember);
+  border-width: 3px;
+}
+
+.circle-app .c-star {
+  margin-inline-start: 0.25rem;
+  color: var(--c-ember);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.circle-app .c-field-error {
+  display: block;
+  margin-top: 6px;
+  color: var(--c-ember);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.circle-app .c-pill {
+  border-radius: 8px;
+  background: var(--c-night);
+  color: var(--c-paper);
+  font-weight: 600;
+}
+
+.circle-app .c-pill:hover {
+  background: #0b3a34;
+}
+
+.circle-app .c-pill:disabled,
+.circle-app .c-quiet:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.circle-app .c-rail .c-pill,
+.circle-app .c-dock .c-pill {
+  background: var(--c-brass);
+  color: var(--c-night);
+}
+
+.circle-app .c-rail .c-pill:hover,
+.circle-app .c-dock .c-pill:hover {
+  background: #f0d49a;
+}
+
+.circle-app .c-quiet {
+  border-radius: 8px;
+  border: 1px solid var(--c-line);
+  background: #fff;
+  color: var(--c-ink);
+  font-weight: 600;
+}
+
+.circle-app .c-rail .c-quiet {
+  border-color: rgb(231 242 236 / 0.28);
+  background: transparent;
+  color: var(--c-paper);
+}
+
+.circle-app .c-chip,
+.circle-app .c-sample {
+  border-radius: 8px;
+  background: var(--c-paper);
+  color: var(--c-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.circle-app .c-sample {
+  background: var(--c-brass);
+  color: var(--c-night);
+}
+
+.circle-app .c-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 8px;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--c-ink-2);
+}
+
+.circle-app .c-nav[aria-current="page"] {
+  background: var(--c-paper);
+  font-weight: 600;
+  color: var(--c-night);
+}
+
+.circle-app .c-nav:hover {
+  background: rgb(15 122 114 / 0.08);
+  color: var(--c-ink);
+}
+
+.circle-app .c-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 8px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--c-ink-2);
+}
+
+.circle-app .c-tab[aria-pressed="true"] {
+  background: var(--c-night);
+  color: var(--c-brass);
+}
+
+.circle-app .c-face-ring {
+  display: inline-flex;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px var(--c-ground);
+}
+
+.circle-app .c-face {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--c-night);
+  color: var(--c-brass);
+  font-weight: 600;
+}
+
+.circle-app .c-cover {
+  height: 7.5rem;
+  background: var(--c-night);
+}
+
+.circle-app .c-row:hover {
+  background: rgb(15 122 114 / 0.06);
+}
+
+.circle-app .c-ink-2 {
+  color: var(--c-ink-2);
+}
+
+.circle-app .c-ink-3 {
+  color: var(--c-ink-2);
+}
+
+.circle-app .c-palm {
+  color: var(--c-palm);
+}
+
+.circle-app .c-ember {
+  color: var(--c-ember);
+}
+
+.circle-app .c-note-map {
+  position: relative;
+  display: block;
+  height: 232px;
+  margin-top: 12px;
+  overflow: hidden;
+  border: 1px solid var(--c-line);
+  border-radius: 8px;
+  background: var(--c-paper);
+}
+
+.circle-app .c-note-map-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.circle-app .c-note-map-canvas * {
+  pointer-events: none;
+}
+
+.circle-app .c-project {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--c-line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--c-ink-2);
+}
+
+.circle-app .c-project strong {
+  color: var(--c-palm);
+  font-weight: 600;
+}
+
+.circle-app [data-desk-gate].is-nudge {
+  outline: 3px solid var(--c-palm);
+  outline-offset: 2px;
+}
+
+.circle-app .c-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 64px;
+  border: 1px solid var(--c-field);
+  border-radius: 8px;
+  background: #fff;
+  padding-inline: 12px;
+  color: var(--c-ink-2);
+}
+
+.circle-app .c-search input {
+  min-width: 0;
+  height: 100%;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--c-ink);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.circle-app .c-search input::placeholder {
+  color: var(--c-ink-2);
+}
+
+.circle-app .c-search:focus-within,
+.circle-app .c-search input:focus,
+.circle-app .c-search input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.circle-app .c-search:focus-within {
+  border-color: var(--c-palm);
+  border-width: 3px;
+}

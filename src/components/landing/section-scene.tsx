@@ -73,18 +73,12 @@ export function BuildingMark({
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    const paint = () => {
-      const box = node.getBoundingClientRect();
-      const view = window.innerHeight || 1;
-      setLive(box.bottom > 8 && box.top < view - 8);
-    };
-    paint();
-    window.addEventListener("scroll", paint, { passive: true });
-    window.addEventListener("resize", paint);
-    return () => {
-      window.removeEventListener("scroll", paint);
-      window.removeEventListener("resize", paint);
-    };
+    const observer = new IntersectionObserver(
+      ([entry]) => setLive((current) => (current === entry.isIntersecting ? current : entry.isIntersecting)),
+      { rootMargin: "-8px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -114,19 +108,26 @@ export function SectionScene({
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
+    let frame = 0;
     const paint = () => {
+      frame = 0;
       const box = node.getBoundingClientRect();
       const view = window.innerHeight || 1;
       const enter = box.bottom > view * 0.18 && box.top < view * 0.82;
       const leave = box.bottom < view * 0.04 || box.top > view * 0.96;
       setLive((current) => (enter ? true : leave ? false : current));
     };
-    paint();
-    window.addEventListener("scroll", paint, { passive: true });
-    window.addEventListener("resize", paint);
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(paint);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
     return () => {
-      window.removeEventListener("scroll", paint);
-      window.removeEventListener("resize", paint);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);
 

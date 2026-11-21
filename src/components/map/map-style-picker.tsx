@@ -72,14 +72,10 @@ export function MapStylePicker({
           )}
           aria-label={t("style")}
         >
-          <StyleSwatch colors={current.swatch} className={compact ? "size-6" : "size-7"} />
-          <span className="min-w-0 text-start">
-            <span className={cn("block font-medium leading-none text-mist", compact ? "text-[10px]" : "text-[10px]")}>
-              {t("style")}
-            </span>
-            <span className={cn("mt-0.5 block truncate font-semibold leading-none", compact ? "text-[11px]" : "text-xs")}>
-              {t(LABEL_KEY[value])}
-            </span>
+          <StyleSwatch colors={current.swatch} className={compact ? "size-7" : "size-7"} />
+          <span className={cn("min-w-0 text-start", compact && "sr-only")}>
+            <span className="block text-[10px] font-medium leading-none text-mist">{t("style")}</span>
+            <span className="mt-0.5 block truncate text-xs font-semibold leading-none">{t(LABEL_KEY[value])}</span>
           </span>
           <svg
             viewBox="0 0 16 16"

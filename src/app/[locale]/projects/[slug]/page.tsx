@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ProjectSheet } from "@/components/catalogue/project-sheet";
 import { FALLBACK_IMAGE, pick, pickPlain } from "@/data/atlas";
 import { hasAdminSession } from "@/lib/admin-auth";
-import { readAtlas } from "@/lib/atlas-store";
+import { readPublicAtlas } from "@/lib/atlas-store";
 import { pageMetadata } from "@/lib/seo";
 
 export const instant = false;
@@ -16,7 +16,7 @@ export async function generateMetadata({
 }) {
   const { locale, slug } = await params;
   await connection();
-  const atlas = await readAtlas();
+  const atlas = await readPublicAtlas();
   const project = atlas.projects.find((item) => item.id === slug);
   if (!project) return {};
   return pageMetadata(locale, {
@@ -35,7 +35,7 @@ export default async function ProjectPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   await connection();
-  const atlas = await readAtlas();
+  const atlas = await readPublicAtlas();
   const project = atlas.projects.find((item) => item.id === slug);
   if (!project) notFound();
   const admin = await hasAdminSession();

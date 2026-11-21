@@ -1,0 +1,111 @@
+.site-menu {
+  position: fixed;
+  inset: 4rem 0 0;
+  z-index: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear 420ms;
+}
+
+.site-menu[data-open="true"] {
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.site-menu-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(6 36 33 / 0.46);
+  opacity: 0;
+  transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.site-menu[data-open="true"] .site-menu-scrim {
+  opacity: 1;
+}
+
+.site-menu-panel {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  max-height: calc(100dvh - 4rem);
+  overflow: auto;
+  background: #062421;
+  padding: 0.5rem 0.75rem 1rem;
+  box-shadow: 0 12px 28px rgb(6 36 33 / 0.28);
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.site-menu[data-open="true"] .site-menu-panel {
+  clip-path: inset(0 0 0 0);
+}
+
+.site-menu-panel a {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    opacity 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 360ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 160ms linear;
+}
+
+.site-menu[data-open="true"] .site-menu-panel a {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: calc(50ms + var(--i, 0) * 36ms);
+}
+
+.menu-bars {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 14px;
+}
+
+.menu-bars span {
+  position: absolute;
+  inset-inline: 0;
+  height: 2px;
+  border-radius: 8px;
+  background: currentColor;
+  transform-origin: center;
+  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+}
+
+.menu-bars span:nth-child(1) {
+  top: 0;
+}
+
+.menu-bars span:nth-child(2) {
+  top: 6px;
+}
+
+.menu-bars span:nth-child(3) {
+  top: 12px;
+}
+
+.menu-toggle[data-open="true"] .menu-bars span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.menu-toggle[data-open="true"] .menu-bars span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0.15);
+}
+
+.menu-toggle[data-open="true"] .menu-bars span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-menu,
+  .site-menu-scrim,
+  .site-menu-panel,
+  .site-menu-panel a,
+  .menu-bars span {
+    transition: none;
+  }
+}

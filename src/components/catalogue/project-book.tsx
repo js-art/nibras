@@ -92,7 +92,7 @@ export function ProjectBook({ atlas, query }: { atlas: Atlas; query: BookQuery }
           push({ ...query, q });
         }}
       >
-        <div className="flex flex-col gap-2 px-4 py-3 lg:flex-row lg:items-center lg:px-5">
+        <div className="flex flex-col gap-2 px-4 py-3 lg:flex-row lg:flex-wrap lg:items-center lg:px-5">
           <div className="flex min-w-0 gap-2 lg:min-w-[18rem] lg:flex-1">
             <input
               className={`${controlClass} min-w-0 flex-1`}
@@ -219,7 +219,7 @@ export function ProjectBook({ atlas, query }: { atlas: Atlas; query: BookQuery }
             {projects.length === 0 ? (
               <p className="py-16 text-mist">{t("empty")}</p>
             ) : (
-              <ul className={query.view === "grid" ? "mt-4 grid gap-4 sm:grid-cols-2" : "mt-4 space-y-4"}>
+              <ul className={query.view === "grid" ? "mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" : "mt-4 space-y-4"}>
                 {projects.map((project) => (
                   <ProjectRow
                     key={project.id}
@@ -340,6 +340,57 @@ function ProjectRow({
       </Link>
     </div>
   );
+
+  if (layout === "grid") {
+    return (
+      <li className="min-w-0">
+        <article
+          className={`flex h-full flex-col overflow-hidden rounded-xl border bg-white ${selected ? "border-palm ring-2 ring-palm/25" : "border-[#d5dfd8]"}`}
+          onClick={onSelect}
+        >
+          <Link
+            locale={locale}
+            href={`/projects/${project.id}`}
+            className="relative block aspect-[16/10] overflow-hidden"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <img src={project.image || FALLBACK_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          </Link>
+          <div className="flex min-w-0 flex-1 flex-col p-3">
+            <h2 className="font-display text-lg leading-snug">
+              <Link
+                locale={locale}
+                href={`/projects/${project.id}`}
+                className="line-clamp-1 text-palm-deep underline decoration-palm/40 underline-offset-4 hover:text-palm"
+                onClick={(event) => event.stopPropagation()}
+              >
+                {pick(project.names, locale)}
+              </Link>
+            </h2>
+            <p className="mt-1.5 flex items-center gap-1.5 text-sm text-mist">
+              <PinIcon />
+              <span className="truncate">{placeLabel(atlas, project, locale)}</span>
+            </p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-ink">
+              <HomeIcon />
+              <span className="truncate">
+                {kind}
+                {bedsLine(project, t) ? ` · ${bedsLine(project, t)}` : ""}
+              </span>
+            </p>
+            <p className="mt-3 text-sm font-semibold text-palm-deep">
+              <span className="font-normal text-mist">{t("starting")}</span>{" "}
+              <bdi dir="ltr">{price}</bdi>
+            </p>
+            <p className="mt-1 truncate text-sm text-mist">
+              {t("handover")} <bdi>{project.handover || t("onRequest")}</bdi>
+            </p>
+            <div className="mt-auto pt-3">{actions}</div>
+          </div>
+        </article>
+      </li>
+    );
+  }
 
   return (
     <li>

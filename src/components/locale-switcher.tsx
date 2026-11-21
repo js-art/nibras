@@ -30,14 +30,14 @@ export function LocaleSwitcher({ tone = "dark" }: { tone?: "dark" | "light" }) {
   const idle = tone === "light" ? "text-mist hover:text-ink" : "text-[#d5dfd8] hover:text-white";
 
   return (
-    <div className={`flex items-center gap-1 rounded-lg p-1 text-sm ${shell}`}>
+    <div className={`flex shrink-0 items-center gap-0.5 rounded-lg p-0.5 text-sm sm:gap-1 sm:p-1 ${shell}`}>
       {locales.map((item) => (
         <Link
           key={item.id}
           href={pathname}
           locale={item.id}
           hrefLang={item.id}
-          className={`rounded-md px-2.5 py-1 ${locale === item.id ? active : idle}`}
+          className={`rounded-md px-1.5 py-1 sm:px-2.5 ${locale === item.id ? active : idle}`}
         >
           {item.label}
         </Link>

@@ -5,7 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { EntityCard } from "@/components/catalogue/entity-card";
 import { areaStats, currencyOf, FALLBACK_IMAGE, fullAmount, pick, pickPlain} from "@/data/atlas"
 import { ProseHtml } from "@/components/prose-html";
-import { readAtlas } from "@/lib/atlas-store";
+import { readPublicAtlas } from "@/lib/atlas-store";
 import { pageMetadata } from "@/lib/seo";
 
 export const instant = false;
@@ -17,7 +17,7 @@ export async function generateMetadata({
 }) {
   const { locale, slug } = await params;
   await connection();
-  const atlas = await readAtlas();
+  const atlas = await readPublicAtlas();
   const area = atlas.areas.find((item) => item.id === slug);
   if (!area) return {};
   return pageMetadata(locale, {
@@ -36,7 +36,7 @@ export default async function AreaPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   await connection();
-  const atlas = await readAtlas();
+  const atlas = await readPublicAtlas();
   const area = atlas.areas.find((item) => item.id === slug);
   if (!area) notFound();
   const t = await getTranslations({ locale, namespace: "areas" });

@@ -2,7 +2,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 /** Bump when schema changes so HMR does not keep a stale PrismaClient. */
-const PRISMA_GLOBAL_KEY = "nibrasPrisma_v2" as const;
+const PRISMA_GLOBAL_KEY = "nibrasPrisma_v8" as const;
 
 const globalForPrisma = globalThis as unknown as Record<string, PrismaClient | undefined>;
 

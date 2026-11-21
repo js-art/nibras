@@ -1,6 +1,11 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { CircleText } from "@/components/circle/circle-text";
 import { LeadForm } from "@/components/lead-form";
+import { ProjectRoom } from "@/components/catalogue/project-room";
+import { getCircleViewer } from "@/lib/circle/session";
+import { listProjectNotes, projectVoice } from "@/lib/circle/store";
+import { ensureProjectChannel } from "@/lib/meet-channel";
 import { ProseHtml } from "@/components/prose-html";
 import { FALLBACK_IMAGE, fullAmount, pick, type Atlas, type Project } from "@/data/atlas";
 import { DESK_PATH } from "@/lib/desk";
@@ -23,6 +28,11 @@ export async function ProjectSheet({
   const projectText = await getTranslations({ locale, namespace: "projects" });
   const detail = await getTranslations({ locale, namespace: "detail" });
   const lead = await getTranslations({ locale, namespace: "lead" });
+  const circle = await getTranslations({ locale, namespace: "circle" });
+  const viewer = await getCircleViewer().catch(() => null);
+  const voice = await projectVoice(project.id).catch(() => null);
+  const speaker = voice && !voice.banned ? voice : null;
+  const notes = await listProjectNotes(project.id, locale, viewer?.id).catch(() => []);
   const area = atlas.areas.find((item) => item.id === project.areaId);
   const developer = atlas.developers.find((item) => item.id === project.developerId);
   const kind =
@@ -39,8 +49,10 @@ export async function ProjectSheet({
     : project.payment.length
       ? [{ id: "payment", title: { en: "", ar: "", fa: "" }, note: { en: "", ar: "", fa: "" }, steps: project.payment }]
       : [];
+  const meetHref = `/meet/savat/${encodeURIComponent(project.id)}?talk=1`;
+  await ensureProjectChannel({ id: project.id, name: pick(project.names, locale) });
   const similar = atlas.projects
-    .filter((item) => item.id !== project.id && (item.areaId === project.areaId || item.developerId === project.developerId))
+    .filter((item) => item.id !== project.id && (speaker ? item.areaId === project.areaId : item.areaId === project.areaId || item.developerId === project.developerId))
     .slice(0, 3);
 
   return (
@@ -48,9 +60,23 @@ export async function ProjectSheet({
       <header className="border-b border-[#d5dfd8] bg-[#e7f2ec]">
         <div className="mx-auto max-w-6xl px-4 py-8">
           <div className="flex items-center justify-between gap-3">
-            <Link locale={locale} href="/projects" className="text-sm font-medium text-palm">
-              {detail("back")}
-            </Link>
+            {speaker ? (
+              <nav aria-label={circle("breadcrumb")} className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm">
+                <Link locale={locale} href="/majlis" className="font-medium text-palm">
+                  {circle("title")}
+                </Link>
+                <span aria-hidden>/</span>
+                <Link locale={locale} href={`/majlis/${speaker.handle}`} className="font-medium text-palm">
+                  {speaker.displayName}
+                </Link>
+                <span aria-hidden>/</span>
+                <span className="truncate font-semibold text-palm-deep">{pick(project.names, locale)}</span>
+              </nav>
+            ) : (
+              <Link locale={locale} href="/projects" className="text-sm font-medium text-palm">
+                {detail("back")}
+              </Link>
+            )}
             {admin ? (
               <Link
                 locale={locale}
@@ -64,6 +90,15 @@ export async function ProjectSheet({
           <div className="mt-5 h-px w-12 bg-[#e4c27a]" />
           <p className="mt-4 text-sm text-mist">{placeLabel(atlas, project, locale)}</p>
           <h1 className="mt-2 font-display text-xl leading-[1.35] text-palm-deep sm:text-2xl">{pick(project.names, locale)}</h1>
+          {speaker ? (
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink">
+              {circle("communityMark")}{" "}
+              <Link locale={locale} href={`/majlis/${speaker.handle}`} className="font-semibold text-palm">
+                {speaker.displayName}
+              </Link>{" "}
+              {circle("communityDid")}
+            </p>
+          ) : null}
           {pick(project.brochure.tagline, locale).trim() ? (
             <p className="mt-2 max-w-2xl text-base leading-7 text-ink">{pick(project.brochure.tagline, locale)}</p>
           ) : null}
@@ -89,7 +124,7 @@ export async function ProjectSheet({
             ))}
           </dl>
 
-          {developer ? (
+          {developer && !speaker ? (
             <p className="mt-4 text-sm text-mist">
               <Link locale={locale} href={`/developers/${developer.id}`} className="font-medium text-palm">
                 {pick(developer.names, locale)}
@@ -132,6 +167,14 @@ export async function ProjectSheet({
               </a>
             ) : null}
           </div>
+
+          <ProjectRoom
+            href={meetHref}
+            title={detail("room")}
+            lede={detail("roomLede", { name: pick(project.names, locale) })}
+            openLabel={detail("roomOpen")}
+            closeLabel={detail("roomClose")}
+          />
 
           {project.brochure.highlights.length ? (
             <section className="mt-10">
@@ -219,6 +262,32 @@ export async function ProjectSheet({
             </section>
           ) : null}
 
+          <section className="mt-10">
+            <h2 className="font-display text-xl leading-snug text-palm-deep">{circle("projectNotesTitle")}</h2>
+            <p className="mt-2 text-sm leading-6 text-mist">{circle("projectNotesLede")}</p>
+            {notes.length ? (
+              <ul className="mt-4 divide-y divide-[#d5dfd8] border-t border-[#d5dfd8]">
+                {notes.slice(0, 4).map((note) => (
+                  <li key={note.id} className="py-3">
+                    <Link locale={locale} href={`/majlis/${note.author.handle}`} className="text-sm font-medium text-palm-deep">
+                      {note.author.displayName}
+                    </Link>
+                    <span className="ms-2 text-xs text-mist">{note.sample ? circle("sample") : note.author.role === "agent" ? circle("roleAgent") : circle("roleInvestor")}</span>
+                    <CircleText text={note.body} className="mt-1 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-ink" />
+                    <Link locale={locale} href={`/majlis/post/${note.id}`} className="mt-1 inline-block text-sm font-medium text-palm">
+                      {circle("openNote")}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-mist">{circle("emptyFeed")}</p>
+            )}
+            <Link locale={locale} href={`/majlis?project=${project.id}`} className="mt-3 inline-block text-sm font-medium text-palm">
+              {circle("writeOnProject")}
+            </Link>
+          </section>
+
           {similar.length ? (
             <section className="mt-10">
               <h2 className="font-display text-xl leading-snug text-palm-deep">{t("similar")}</h2>
@@ -237,7 +306,18 @@ export async function ProjectSheet({
         </div>
 
         <div className="h-fit rounded-lg border border-[#d5dfd8] bg-white p-5 lg:sticky lg:top-16 lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto">
-          <p className="mb-3 text-sm font-medium text-palm">{detail("agent")}</p>
+          {speaker ? (
+            <p className="text-sm leading-6 text-ink">
+              {circle("communityMark")}{" "}
+              <Link locale={locale} href={`/majlis/${speaker.handle}`} className="font-semibold text-palm">
+                {speaker.displayName}
+              </Link>{" "}
+              {circle("communityDid")}
+            </p>
+          ) : (
+            <p className="mb-3 text-sm font-medium text-palm">{detail("agent")}</p>
+          )}
+          {speaker ? null : (
           <LeadForm
             projectId={project.id}
             labels={{
@@ -251,6 +331,7 @@ export async function ProjectSheet({
               done: lead("done"),
             }}
           />
+          )}
           {area ? (
             <Link locale={locale} href={`/map?area=${project.areaId}`} className="mt-4 inline-block text-sm font-medium text-palm">
               {t("areaOnMap")}

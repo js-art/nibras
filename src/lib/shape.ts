@@ -1,5 +1,5 @@
 export type LngLat = [number, number];
-export type DrawMode = "corner" | "smooth" | "round" | "hand";
+export type DrawMode = "pin" | "corner" | "smooth" | "round" | "hand";
 
 const PROFILES: number[][] = [
   [1.05, 0.9, 1.2, 0.74, 0.98, 1.24, 0.82, 1.08, 0.68, 1.0],

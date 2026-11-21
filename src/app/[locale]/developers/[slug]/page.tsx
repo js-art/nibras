@@ -5,7 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { EntityCard } from "@/components/catalogue/entity-card";
 import { currencyOf, FALLBACK_IMAGE, fullAmount, pick, pickPlain} from "@/data/atlas"
 import { ProseHtml } from "@/components/prose-html";
-import { readAtlas } from "@/lib/atlas-store";
+import { readPublicAtlas } from "@/lib/atlas-store";
 import { pageMetadata } from "@/lib/seo";
 
 export const instant = false;
@@ -17,7 +17,7 @@ export async function generateMetadata({
 }) {
   const { locale, slug } = await params;
   await connection();
-  const atlas = await readAtlas();
+  const atlas = await readPublicAtlas();
   const developer = atlas.developers.find((item) => item.id === slug);
   if (!developer) return {};
   return pageMetadata(locale, {
@@ -36,7 +36,7 @@ export default async function DeveloperPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   await connection();
-  const atlas = await readAtlas();
+  const atlas = await readPublicAtlas();
   const developer = atlas.developers.find((item) => item.id === slug);
   if (!developer) notFound();
   const t = await getTranslations({ locale, namespace: "developers" });
@@ -57,7 +57,7 @@ export default async function DeveloperPage({
             </h1>
             <ProseHtml className="mt-3 max-w-xl text-base leading-7 text-mist" html={pick(developer.about, locale)} />
             {developer.delivered > 0 ? (
-              <p className="mt-3 text-sm text-[#e4c27a]">
+              <p className="mt-3 text-base font-semibold text-palm-deep">
                 {developer.delivered.toLocaleString(locale === "fa" ? "fa-IR" : locale === "ar" ? "ar-AE" : "en-AE")}{" "}
                 {t("delivered")}
               </p>

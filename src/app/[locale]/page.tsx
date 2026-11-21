@@ -18,7 +18,7 @@ import {
 } from '@/data/atlas';
 import { hasAdminSession } from '@/lib/admin-auth';
 import { DESK_PATH } from '@/lib/desk';
-import { readAtlas } from '@/lib/atlas-store';
+import { readPublicAtlas } from '@/lib/atlas-store';
 import { catalogueCopy } from '@/lib/copy-maps';
 import { pageMetadata } from '@/lib/seo';
 import { readSite } from '@/lib/site-store';
@@ -68,7 +68,7 @@ export default async function HomePage({
   const { locale } = await params;
   setRequestLocale(locale);
   await connection();
-  const atlas = await readAtlas();
+  const atlas = await readPublicAtlas();
   const site = await readSite();
   const admin = await hasAdminSession();
   const hero = await getTranslations({ locale, namespace: 'hero' });
@@ -79,6 +79,7 @@ export default async function HomePage({
   });
   const adminText = await getTranslations({ locale, namespace: 'admin' });
   const mapLabels = await getTranslations({ locale, namespace: 'map' });
+  const circleText = await getTranslations({ locale, namespace: 'circle' });
   const copy = await catalogueCopy(locale);
   const landing = site.landing;
   const steps = landing.steps.map((step) => ({
@@ -353,6 +354,25 @@ export default async function HomePage({
             </ul>
           </div>
         </SectionScene>
+      </section>
+
+      <section className='bg-[#eef3f0]'>
+        <div className='mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-4 py-14 sm:flex-row sm:items-end'>
+          <div className='max-w-xl'>
+            <p className='text-sm font-medium text-palm'>{circleText('homeKicker')}</p>
+            <h2 className='mt-3 font-display text-3xl leading-[1.3] text-palm-deep sm:text-4xl'>
+              {circleText('homeTitle')}
+            </h2>
+            <p className='mt-4 text-base leading-8 text-mist'>{circleText('homeLede')}</p>
+          </div>
+          <Link
+            locale={locale}
+            href='/majlis'
+            className='inline-flex h-13 items-center rounded-lg bg-palm-deep px-5 text-sm font-semibold text-[#e7f2ec]'
+          >
+            {circleText('homeOpen')}
+          </Link>
+        </div>
       </section>
 
       <section className='overflow-hidden bg-palm-deep text-[#e7f2ec]'>

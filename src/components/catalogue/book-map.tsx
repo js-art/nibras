@@ -113,24 +113,40 @@ export function BookMap({
     if (!map) return;
     const draw = () => {
       markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = pins.map((pin) => {
+      const placed: { x: number; y: number }[] = [];
+      const ordered = [...pins].sort(
+        (a, b) => Number(b.project.id === selectedId) - Number(a.project.id === selectedId),
+      );
+      markersRef.current = ordered.map((pin) => {
         const active = pin.project.id === selectedId;
+        const point = map.project(pin.project.point);
+        let y = point.y;
+        let guard = 0;
+        while (placed.some((other) => Math.abs(other.x - point.x) < 96 && Math.abs(other.y - y) < 32) && guard < 8) {
+          y -= 34;
+          guard += 1;
+        }
+        placed.push({ x: point.x, y });
         const button = document.createElement("button");
         button.type = "button";
         button.textContent = pin.price;
         button.setAttribute("aria-pressed", active ? "true" : "false");
         button.className = active
           ? "relative z-10 cursor-pointer rounded-full border-0 bg-palm-deep px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-[#e7f2ec] shadow-[0_12px_28px_-16px_rgba(7,31,22,0.55)]"
-          : "cursor-pointer rounded-full border-0 bg-white px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-palm-deep shadow-[0_12px_28px_-16px_rgba(7,31,22,0.55)]";
+          : "relative cursor-pointer rounded-full border-0 bg-white px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-palm-deep shadow-[0_12px_28px_-16px_rgba(7,31,22,0.55)]";
         button.addEventListener("click", (event) => {
           event.stopPropagation();
           onSelectRef.current(pin.project.id);
         });
-        return new Marker({ element: button, anchor: "center" }).setLngLat(pin.project.point).addTo(map);
+        return new Marker({ element: button, anchor: "center", offset: [0, y - point.y] })
+          .setLngLat(pin.project.point)
+          .addTo(map);
       });
     };
     if (map.isStyleLoaded()) draw();
     else map.once("load", draw);
+    map.on("zoomend", draw);
+    return () => map.off("zoomend", draw);
   }, [pins, selectedId]);
 
   useEffect(() => {

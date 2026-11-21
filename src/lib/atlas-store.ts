@@ -115,6 +115,18 @@ export async function readAtlas(): Promise<Atlas> {
   return normalizeAtlas(atlas) ?? seedAtlas;
 }
 
+/** Public catalogue. A banned member's introduced project stays in the database and off this list. */
+export async function readPublicAtlas() {
+  const atlas = await readAtlas();
+  const hidden = await db.project.findMany({
+    where: { introducedBy: { banned: true } },
+    select: { id: true },
+  });
+  if (!hidden.length) return atlas;
+  const ids = new Set(hidden.map((row) => row.id));
+  return { ...atlas, projects: atlas.projects.filter((project) => !ids.has(project.id)) };
+}
+
 export async function writeAtlas(input: Atlas) {
   const atlas = normalizeAtlas(input) ?? seedAtlas;
 
@@ -132,6 +144,10 @@ export async function writeAtlas(input: Atlas) {
   const suggestionStamp = new Map(suggestionRows.map((row) => [row.id, row.updatedAt]));
 
   await db.$transaction(async (tx) => {
+    const introduced = await tx.project.findMany({
+      where: { introducedById: { not: null } },
+      select: { id: true, introducedById: true },
+    });
     await tx.suggestion.deleteMany();
     await tx.project.deleteMany();
     await tx.area.deleteMany();
@@ -234,6 +250,11 @@ export async function writeAtlas(input: Atlas) {
             where: { id: project.id },
             data: { updatedAt: resolveUpdatedAt(project.id, project.updatedAt, projectStamp) },
           }),
+        ),
+      );
+      await Promise.all(
+        introduced.map((row) =>
+          tx.project.update({ where: { id: row.id }, data: { introducedById: row.introducedById } }).catch(() => undefined),
         ),
       );
     }

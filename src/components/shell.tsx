@@ -29,6 +29,8 @@ export async function Shell({
     ["/", t("explore")],
     ["/map", t("map")],
     ["/projects", t("projects")],
+    ["/majlis", t("circle")],
+    ["/rooms", t("rooms")],
     ["/areas", t("areas")],
     ["/developers", t("developers")],
   ] as const;

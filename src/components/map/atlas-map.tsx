@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { controlClass } from "@/components/ui/controls";
+import { controlClass, Select } from "@/components/ui/controls";
 import {
   LngLatBounds,
   Map,
@@ -16,6 +16,8 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { DESK_PATH } from "@/lib/desk";
 import { circleRing, roundRing, simplify, type DrawMode } from "@/lib/shape";
+import { centroid, inCountry, type CirclePlace } from "@/lib/circle/place";
+import { SharePlace } from "@/components/map/share-place";
 import {
   areaStats,
   closeRing,
@@ -45,17 +47,45 @@ import { useMapStyle } from "@/lib/hooks/use-map-style";
 import { mapStyleUrl } from "@/lib/map-style";
 
 type Rail = "areas" | "search" | "draw";
-type Legend = "area" | "price" | "count";
+type Legend = "area" | "price" | "count" | "notes";
+type MapNote = {
+  id: string;
+  body: string;
+  author: { handle: string; displayName: string };
+  place: CirclePlace;
+};
 
 const empty = { type: "FeatureCollection" as const, features: [] };
 
-function sheetStops(available: number) {
-  const nav = 72;
-  const peek = 72;
-  const map = Math.max(0, available - nav);
-  const full = Math.max(peek + 120, map - 12);
-  const half = Math.round(Math.min(full - 48, Math.max(peek + 160, map * 0.5)));
+function readSheetFrame(sheet: HTMLElement | null) {
+  const viewport = window.visualViewport;
+  const viewTop = viewport?.offsetTop ?? 0;
+  const viewBottom = viewTop + (viewport?.height ?? window.innerHeight);
+  const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? viewTop;
+  const nav = sheet?.parentElement?.querySelector("nav");
+  const navTop = nav ? nav.getBoundingClientRect().top : viewBottom;
+  const visibleNav = Math.min(navTop, viewBottom);
+  const top = Math.max(headerBottom, viewTop);
+  const span = Math.max(0, visibleNav - top);
+  const bottom = Math.max(0, window.innerHeight - visibleNav);
+  return { stops: sheetStops(span), bottom };
+}
+
+function sheetStops(span: number) {
+  const peek = 84;
+  const full = Math.max(peek + 180, span);
+  const half = Math.round(Math.min(full - 16, Math.max(peek + 200, span * 0.42)));
   return { peek, half, full };
+}
+
+function scrollableParent(target: EventTarget | null, root: HTMLElement | null) {
+  let node = target instanceof HTMLElement ? target : null;
+  while (node && node !== root) {
+    const style = getComputedStyle(node);
+    if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 4) return node;
+    node = node.parentElement;
+  }
+  return null;
 }
 
 function heat(t: number, stops: string[]) {
@@ -68,18 +98,25 @@ export function AtlasMap({
   locale,
   initialArea,
   initialCity,
+  initialNote,
+  initialProject,
+  community = {},
   isAdmin = false,
 }: {
   atlas: Atlas;
   locale: string;
   initialArea?: string;
   initialCity?: string;
+  initialNote?: string;
+  initialProject?: string;
+  community?: Record<string, { handle: string; displayName: string }>;
   isAdmin?: boolean;
 }) {
   const t = useTranslations("desk");
   const textDir = locale === "en" ? "ltr" : "rtl";
   const { styleId, setMapStyle } = useMapStyle();
-  const opening = atlas.areas.find((area) => area.id === initialArea);
+  const openingProject = atlas.projects.find((item) => item.id === initialProject) ?? null;
+  const opening = atlas.areas.find((area) => area.id === (openingProject?.areaId || initialArea));
   const openingCity =
     atlas.cities.find((city) => city.id === (initialCity || opening?.cityId)) ??
     atlas.cities.find((city) => city.id === "dubai") ??
@@ -90,12 +127,17 @@ export function AtlasMap({
   const markersRef = useRef<Marker[]>([]);
   const actionRef = useRef<(event: MapMouseEvent) => void>(() => {});
   const railRef = useRef<Rail>("areas");
+  const legendRef = useRef<Legend>("area");
+  const openedNote = useRef(false);
   const [ready, setReady] = useState(false);
   const [rail, setRail] = useState<Rail>("areas");
-  const [legend, setLegend] = useState<Legend>("area");
+  const [legend, setLegend] = useState<Legend>(initialNote ? "notes" : "area");
+  const [notes, setNotes] = useState<MapNote[]>([]);
+  const [noteTick, setNoteTick] = useState(0);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(initialNote ?? null);
   const [cityId, setCityId] = useState(openingCity?.id ?? "");
   const [areaId, setAreaId] = useState<string | null>(opening?.id ?? null);
-  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(openingProject?.id ?? null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [drawPoints, setDrawPoints] = useState<LngLat[]>([]);
@@ -108,10 +150,13 @@ export function AtlasMap({
   const [compact, setCompact] = useState(false);
   const [snap, setSnap] = useState<"peek" | "half" | "full">("half");
   const [sheetPx, setSheetPx] = useState<number | null>(null);
+  const [sheetBottom, setSheetBottom] = useState(72);
   const [sheetDragging, setSheetDragging] = useState(false);
   const sheetRef = useRef<HTMLElement>(null);
-  const dragRef = useRef<{ y: number; h: number; moved: boolean } | null>(null);
+  const dragRef = useRef<{ y: number; x: number; h: number; moved: boolean; zone: boolean } | null>(null);
   const ignoreClick = useRef(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [backStack, setBackStack] = useState<{ rail: Rail; areaId: string | null; projectId: string | null }[]>([]);
   const [currencyFilter, setCurrencyFilter] = useState<Currency | "all">("all");
 
   const city = atlas.cities.find((item) => item.id === cityId) ?? atlas.cities[0];
@@ -142,11 +187,32 @@ export function AtlasMap({
           ? "project"
           : area
             ? "area"
-            : "areas";
+            : legend === "notes"
+              ? "notes"
+              : "areas";
 
   useEffect(() => {
     railRef.current = rail;
   }, [rail]);
+
+  useEffect(() => {
+    legendRef.current = legend;
+  }, [legend]);
+
+  useEffect(() => {
+    let gone = false;
+    fetch(`/api/v1/circle/places?locale=${encodeURIComponent(locale)}`)
+      .then((response) => (response.ok ? response.json() : { places: [] }))
+      .then((data: { places?: MapNote[] }) => {
+        if (!gone) setNotes(Array.isArray(data.places) ? data.places : []);
+      })
+      .catch(() => {
+        if (!gone) setNotes([]);
+      });
+    return () => {
+      gone = true;
+    };
+  }, [locale, noteTick]);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1023px)");
@@ -166,17 +232,35 @@ export function AtlasMap({
 
   useEffect(() => {
     if (!compact) return;
-    const parent = sheetRef.current?.parentElement;
-    if (!parent) return;
+    let frameId = 0;
     const measure = () => {
+      frameId = 0;
       if (dragRef.current) return;
-      const stops = sheetStops(parent.clientHeight);
-      setSheetPx(stops[snap]);
+      const frame = readSheetFrame(sheetRef.current);
+      const bottom = Math.round(frame.bottom);
+      const px = Math.round(frame.stops[snap]);
+      setSheetBottom((current) => (current === bottom ? current : bottom));
+      setSheetPx((current) => (current === px ? current : px));
     };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(parent);
-    return () => observer.disconnect();
+    const schedule = () => {
+      if (frameId) return;
+      frameId = window.requestAnimationFrame(measure);
+    };
+    schedule();
+    const parent = sheetRef.current?.parentElement;
+    const observer = parent ? new ResizeObserver(schedule) : null;
+    if (parent) observer.observe(parent);
+    const viewport = window.visualViewport;
+    viewport?.addEventListener("resize", schedule);
+    viewport?.addEventListener("scroll", schedule);
+    window.addEventListener("resize", schedule);
+    return () => {
+      if (frameId) window.cancelAnimationFrame(frameId);
+      observer?.disconnect();
+      viewport?.removeEventListener("resize", schedule);
+      viewport?.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
   }, [compact, snap]);
 
   useEffect(() => {
@@ -193,11 +277,42 @@ export function AtlasMap({
     return DESK_PATH;
   }, [areaId, cityId, projectId]);
 
+  const notesHere = useMemo(
+    () => notes.filter((note) => note.place.country === country),
+    [country, notes],
+  );
+  const notesGeo = useMemo(() => {
+    if (legend !== "notes") return empty;
+    return {
+      type: "FeatureCollection" as const,
+      features: notesHere.flatMap((note) => {
+        if (note.place.kind !== "range" || !note.place.ring || note.place.ring.length < 4) return [];
+        return [
+          {
+            type: "Feature" as const,
+            properties: { id: note.id },
+            geometry: { type: "Polygon" as const, coordinates: [note.place.ring] },
+          },
+        ];
+      }),
+    };
+  }, [legend, notesHere]);
   const drawn = useMemo(() => (drawClosed ? closeRing(drawPoints) : drawPoints), [drawClosed, drawPoints]);
   const inside = useMemo(() => {
     if (!drawClosed || drawn.length < 4) return [];
     return atlas.projects.filter((item) => pointInRing(item.point, drawn));
   }, [atlas.projects, drawClosed, drawn]);
+  const sharePlace = useMemo((): CirclePlace | null => {
+    const land = country === "om" ? "om" : "ae";
+    if (drawMode === "pin" && drawPoints.length === 1 && inCountry(land, drawPoints[0])) {
+      return { kind: "point", country: land, point: drawPoints[0] };
+    }
+    if (drawClosed && drawMode !== "pin" && drawn.length >= 4 && drawn.every((point) => inCountry(land, point))) {
+      return { kind: "range", country: land, point: centroid(drawn), ring: drawn };
+    }
+    return null;
+  }, [country, drawClosed, drawMode, drawPoints, drawn]);
+  const selectedNote = notes.find((note) => note.id === selectedNoteId) ?? null;
 
   const areaGeo = useMemo(() => {
     const selected = view === "area" || view === "project" ? area : null;
@@ -319,6 +434,20 @@ export function AtlasMap({
           "line-width": ["get", "width"],
         },
       });
+      map.addSource("notes", { type: "geojson", data: empty });
+      map.addLayer({
+        id: "notes-fill",
+        type: "fill",
+        source: "notes",
+        paint: { "fill-color": "#0f7a72", "fill-opacity": 0.28 },
+      });
+      map.addLayer({
+        id: "notes-line",
+        type: "line",
+        source: "notes",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#e4c27a", "line-width": 2.5 },
+      });
       map.addSource("focus", { type: "geojson", data: empty });
       map.addLayer({
         id: "focus-fill",
@@ -364,8 +493,12 @@ export function AtlasMap({
           map.getCanvas().style.cursor = "crosshair";
           return;
         }
+        const noteHits =
+          legendRef.current === "notes"
+            ? map.queryRenderedFeatures(event.point, { layers: ["notes-fill"] })
+            : [];
         const hits = map.queryRenderedFeatures(event.point, { layers: ["areas-fill"] });
-        map.getCanvas().style.cursor = hits.length ? "pointer" : "";
+        map.getCanvas().style.cursor = noteHits.length || hits.length ? "pointer" : "";
       });
       map.resize();
       setReady(true);
@@ -386,10 +519,11 @@ export function AtlasMap({
     const map = mapRef.current;
     if (!map || !ready) return;
     (map.getSource("areas") as GeoJSONSource | undefined)?.setData(areaGeo);
+    (map.getSource("notes") as GeoJSONSource | undefined)?.setData(notesGeo);
     (map.getSource("focus") as GeoJSONSource | undefined)?.setData(focusGeo);
     (map.getSource("draw") as GeoJSONSource | undefined)?.setData(drawGeo);
     (map.getSource("vertices") as GeoJSONSource | undefined)?.setData(vertexGeo);
-  }, [areaGeo, drawGeo, focusGeo, ready, vertexGeo]);
+  }, [areaGeo, drawGeo, focusGeo, notesGeo, ready, vertexGeo]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -427,6 +561,20 @@ export function AtlasMap({
       const marker = new Marker({ element, anchor: "center" }).setLngLat(coord).addTo(map);
       markersRef.current.push(marker);
     };
+
+    const notePin =
+      "grid h-8 min-w-8 place-items-center rounded-full bg-palm-deep px-2 text-xs font-semibold text-[#e4c27a] shadow ring-2 ring-white";
+    const notePinOn = `${notePin} outline outline-2 outline-offset-2 outline-[#e4c27a]`;
+
+    if (legend === "notes") {
+      for (const note of notesHere) {
+        const letter = note.author.displayName.trim().charAt(0) || "•";
+        place(note.place.point, letter, note.id === selectedNoteId ? notePinOn : notePin, () => {
+          setSelectedNoteId(note.id);
+        });
+      }
+      return;
+    }
 
     const quiet = "rounded-full border border-ink/10 bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-ink shadow";
     const price = "rounded-full bg-ink px-2 py-1 text-[11px] font-semibold text-paper shadow";
@@ -482,12 +630,40 @@ export function AtlasMap({
     hoveredId,
     legend,
     locale,
+    notesHere,
     project,
     projectId,
     rail,
     ready,
+    selectedNoteId,
     view,
   ]);
+
+  useEffect(() => {
+    if (openedNote.current || !initialNote || !notes.length || !ready) return;
+    const note = notes.find((item) => item.id === initialNote);
+    if (!note) return;
+    openedNote.current = true;
+    if (note.place.country !== country) {
+      const first = atlas.cities.find((item) => item.country === note.place.country);
+      if (first) setCityId(first.id);
+    }
+    setAreaId(null);
+    setProjectId(null);
+    setRail("areas");
+    setLegend("notes");
+    setSelectedNoteId(note.id);
+  }, [atlas.cities, country, initialNote, notes, ready]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || legend !== "notes" || !selectedNote) return;
+    map.flyTo({
+      center: selectedNote.place.point,
+      zoom: selectedNote.place.kind === "point" ? 14.2 : 12.4,
+      essential: true,
+    });
+  }, [legend, ready, selectedNote]);
 
   useEffect(() => {
     actionRef.current = (event) => {
@@ -496,6 +672,11 @@ export function AtlasMap({
       if (rail === "draw") {
         if (drawClosed || drawMode === "hand") return;
         const next: LngLat = [event.lngLat.lng, event.lngLat.lat];
+        if (drawMode === "pin") {
+          setDrawPoints([next]);
+          setDrawClosed(true);
+          return;
+        }
         if (drawMode === "round") {
           if (drawPoints.length === 0) {
             setDrawPoints([next]);
@@ -518,6 +699,12 @@ export function AtlasMap({
         setDrawPoints((points) => [...points, next]);
         return;
       }
+      if (legend === "notes") {
+        const noteHits = map.queryRenderedFeatures(event.point, { layers: ["notes-fill"] });
+        const noteId = noteHits[0]?.properties?.id;
+        setSelectedNoteId(typeof noteId === "string" ? noteId : null);
+        return;
+      }
       const hits = map.queryRenderedFeatures(event.point, { layers: ["areas-fill"] });
       const id = hits[0]?.properties?.id;
       if (typeof id === "string") {
@@ -527,7 +714,7 @@ export function AtlasMap({
         setAboutOpen(false);
       }
     };
-  }, [drawClosed, drawMode, drawPoints, rail]);
+  }, [drawClosed, drawMode, drawPoints, legend, rail]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -570,6 +757,7 @@ export function AtlasMap({
   function chooseCountry(next: "ae" | "om") {
     const first = atlas.cities.find((item) => item.country === next);
     if (!first) return;
+    if (rail !== "areas" || areaId || projectId) rememberPlace();
     setCityId(first.id);
     setAreaId(null);
     setProjectId(null);
@@ -577,6 +765,7 @@ export function AtlasMap({
   }
 
   function chooseCity(id: string) {
+    if (rail !== "areas" || areaId || projectId) rememberPlace();
     setCityId(id);
     setAreaId(null);
     setProjectId(null);
@@ -586,6 +775,7 @@ export function AtlasMap({
   function openArea(id: string) {
     const next = atlas.areas.find((item) => item.id === id);
     if (!next) return;
+    rememberPlace();
     setCityId(next.cityId);
     setAreaId(next.id);
     setProjectId(null);
@@ -598,6 +788,7 @@ export function AtlasMap({
     const next = atlas.projects.find((item) => item.id === id);
     const home = atlas.areas.find((item) => item.id === next?.areaId);
     if (!next || !home) return;
+    rememberPlace();
     setCityId(home.cityId);
     setAreaId(home.id);
     setProjectId(next.id);
@@ -626,9 +817,12 @@ export function AtlasMap({
           ? t("search")
           : view === "draw"
             ? t("draw")
-            : t("areas");
+            : view === "notes"
+              ? t("legendNotes")
+              : t("areas");
 
   function openRail(next: Rail) {
+    setBackStack([]);
     setRail(next);
     setAreaId(null);
     setProjectId(null);
@@ -639,15 +833,49 @@ export function AtlasMap({
     setSnap("half");
   }
 
+  function rememberPlace() {
+    setBackStack((stack) => [...stack, { rail, areaId, projectId }]);
+  }
+
+  function goBack() {
+    const prev = backStack[backStack.length - 1];
+    if (!prev) return;
+    setBackStack((stack) => stack.slice(0, -1));
+    setRail(prev.rail);
+    setAreaId(prev.areaId);
+    setProjectId(prev.projectId);
+    setBriefOpen(false);
+    setAboutOpen(false);
+    setPanelOpen(true);
+    setSnap("half");
+  }
+
+  function goAreas() {
+    setBackStack([]);
+    setRail("areas");
+    setAreaId(null);
+    setProjectId(null);
+    setBriefOpen(false);
+    setAboutOpen(false);
+    setPanelOpen(true);
+  }
+
+  function leaveProject() {
+    setProjectId(null);
+    setBriefOpen(false);
+    setBeds(null);
+    setPanelOpen(true);
+  }
+
   function sheetLimits() {
-    return sheetStops(sheetRef.current?.parentElement?.clientHeight ?? 0);
+    return readSheetFrame(sheetRef.current).stops;
   }
 
   function onSheetPointerDown(event: React.PointerEvent<HTMLButtonElement>) {
     if (!compact) return;
     const limits = sheetLimits();
     const current = sheetRef.current?.getBoundingClientRect().height ?? limits.half;
-    dragRef.current = { y: event.clientY, h: current, moved: false };
+    dragRef.current = { y: event.clientY, x: event.clientX, h: current, moved: false, zone: true };
     setSheetDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -670,22 +898,84 @@ export function AtlasMap({
     }
     if (!session?.moved) return;
     ignoreClick.current = true;
+    settleSheet(session.h + (session.y - event.clientY), session.y - event.clientY);
+  }
+
+  function settleSheet(height: number, delta: number) {
     const limits = sheetLimits();
-    const height = Math.min(limits.full, Math.max(limits.peek, session.h + (session.y - event.clientY)));
-    const delta = session.y - event.clientY;
+    const clamped = Math.min(limits.full, Math.max(limits.peek, height));
     let target: "peek" | "half" | "full" = "half";
     for (const [name, value] of [
       ["peek", limits.peek],
       ["half", limits.half],
       ["full", limits.full],
     ] as const) {
-      if (Math.abs(value - height) < Math.abs(limits[target] - height)) target = name;
+      if (Math.abs(value - clamped) < Math.abs(limits[target] - clamped)) target = name;
     }
-    if (delta < -56) target = height < limits.half ? "peek" : "half";
-    else if (delta > 56) target = height > limits.half ? "full" : "half";
+    if (delta < -28) target = clamped < limits.half ? "peek" : "half";
+    else if (delta > 28) target = clamped > limits.half ? "full" : "half";
     setSnap(target);
     setPanelOpen(target !== "peek");
     setSheetPx(limits[target]);
+  }
+
+  function onContentPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (!compact || event.button !== 0) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("input, textarea, select")) return;
+    const limits = sheetLimits();
+    const current = sheetRef.current?.getBoundingClientRect().height ?? limits.half;
+    const scroller = scrollableParent(target, contentRef.current);
+    dragRef.current = {
+      y: event.clientY,
+      x: event.clientX,
+      h: current,
+      moved: false,
+      zone: !scroller || Boolean(target.closest("[data-sheet-drag]")),
+    };
+  }
+
+  function onContentPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    const session = dragRef.current;
+    if (!session) return;
+    const delta = session.y - event.clientY;
+    const dx = event.clientX - session.x;
+    if (!session.moved) {
+      if (Math.abs(delta) < 6 && Math.abs(dx) < 6) return;
+      if (Math.abs(dx) > Math.abs(delta)) {
+        dragRef.current = null;
+        return;
+      }
+      const scroller = scrollableParent(event.target, contentRef.current);
+      const atTop = !scroller || scroller.scrollTop <= 1;
+      const notFull = session.h < sheetLimits().full - 16;
+      const lift = session.zone || (delta > 0 && notFull && atTop) || (delta < 0 && atTop);
+      if (!lift) {
+        dragRef.current = null;
+        return;
+      }
+      session.moved = true;
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // The pointer can already be gone; the drag still follows the move.
+      }
+    }
+    setSheetDragging(true);
+    const limits = sheetLimits();
+    setSheetPx(Math.min(limits.full, Math.max(limits.peek, session.h + delta)));
+  }
+
+  function onContentPointerUp(event: React.PointerEvent<HTMLDivElement>) {
+    const session = dragRef.current;
+    dragRef.current = null;
+    setSheetDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (!session?.moved) return;
+    ignoreClick.current = true;
+    settleSheet(session.h + (session.y - event.clientY), session.y - event.clientY);
   }
 
   function toggleSheet() {
@@ -698,13 +988,18 @@ export function AtlasMap({
     setPanelOpen(next !== "peek");
   }
 
-  const legendTucked = compact && sheetPx != null && sheetPx > (sheetRef.current?.parentElement?.clientHeight ?? Infinity) * 0.62;
+  const legendTucked =
+    compact && sheetPx != null && sheetPx > readSheetFrame(sheetRef.current).stops.full * 0.9;
 
   return (
     <div
       className="relative flex h-full min-h-0 flex-col bg-paper lg:flex-row"
       dir="ltr"
-      style={compact && sheetPx != null ? ({ "--sheet": `${sheetPx}px` } as React.CSSProperties) : undefined}
+      style={
+        compact && sheetPx != null
+          ? ({ "--sheet": `${sheetPx}px`, "--sheet-bottom": `${sheetBottom}px` } as React.CSSProperties)
+          : undefined
+      }
     >
       <div className="relative min-h-0 min-w-0 flex-1">
         <div ref={containerRef} className="h-full w-full" />
@@ -713,27 +1008,28 @@ export function AtlasMap({
             {t("drawHint")}
           </p>
         ) : null}
-        {view === "areas" || view === "search" ? (
+        {view === "areas" || view === "search" || view === "notes" ? (
           <div
-            className={`absolute left-1/2 z-10 flex w-[min(92vw,22rem)] -translate-x-1/2 flex-col items-center gap-1.5 lg:bottom-4 ${
+            className={`absolute inset-x-3 z-10 flex flex-col items-center gap-1.5 lg:inset-x-auto lg:bottom-4 lg:left-1/2 lg:w-[min(92vw,22rem)] lg:-translate-x-1/2 ${
               sheetDragging ? "max-lg:transition-none" : "transition-[bottom,opacity] duration-300 ease-out"
             } ${
               legendTucked ? "max-lg:pointer-events-none max-lg:opacity-0" : ""
             } ${sheetPx != null ? "max-lg:bottom-[calc(var(--sheet)+0.75rem)]" : panelOpen ? "max-lg:bottom-[calc(46%+0.75rem)]" : "max-lg:bottom-[5.25rem]"}`}
           >
-            <div className="flex gap-1 rounded-full bg-white/95 p-1 shadow ring-1 ring-ink/10">
+            <div className="flex max-w-full flex-nowrap justify-start gap-1 overflow-x-auto rounded-2xl bg-white/95 p-1 shadow ring-1 ring-ink/10 lg:flex-wrap lg:justify-center">
               {(
                 [
                   ["area", t("legendArea"), t("legendAreaHint")],
                   ["price", t("legendPrice"), t("legendPriceHint")],
                   ["count", t("legendCount"), t("legendCountHint")],
+                  ["notes", t("legendNotes"), t("legendNotesHint")],
                 ] as const
               ).map(([id, label, hint]) => (
                 <HintLabel key={id} hint={hint}>
                   <button
                     type="button"
                     onClick={() => setLegend(id)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium ${legend === id ? "bg-ink text-paper" : "text-ink"}`}
+                    className={`min-h-11 shrink-0 rounded-full px-3 text-sm font-medium lg:min-h-0 lg:px-3 lg:py-1.5 lg:text-xs ${legend === id ? "bg-ink text-paper" : "text-ink"}`}
                   >
                     {label}
                   </button>
@@ -741,11 +1037,15 @@ export function AtlasMap({
               ))}
             </div>
             <p className="rounded-full bg-ink/80 px-3 py-1 text-[10px] font-medium text-paper backdrop-blur-sm max-lg:hidden lg:block">
-              {legend === "area"
-                ? t("legendCaptionArea")
-                : legend === "price"
-                  ? t("legendCaptionPrice")
-                  : t("legendCaptionCount")}
+              {legend === "notes"
+                ? notesHere.length
+                  ? t("legendCaptionNotes")
+                  : t("notesEmpty")
+                : legend === "area"
+                  ? t("legendCaptionArea")
+                  : legend === "price"
+                    ? t("legendCaptionPrice")
+                    : t("legendCaptionCount")}
             </p>
           </div>
         ) : null}
@@ -765,15 +1065,20 @@ export function AtlasMap({
           value={styleId}
           onChange={setMapStyle}
           compact={compact}
-          className="absolute end-3 top-3 z-30"
+          className={`absolute end-3 top-3 z-30 transition-opacity duration-300 ${legendTucked ? "max-lg:pointer-events-none max-lg:opacity-0" : ""}`}
         />
       </div>
 
       <aside
         ref={sheetRef}
-        className={`z-20 flex min-h-0 flex-col border-ink/10 bg-foam max-lg:absolute max-lg:inset-x-0 max-lg:bottom-[4.5rem] max-lg:overflow-hidden max-lg:rounded-t-3xl max-lg:border-t max-lg:shadow-[0_-18px_40px_-24px_rgba(6,36,33,0.45)] lg:static lg:h-auto lg:w-[min(100%,24rem)] lg:shrink-0 lg:border-s lg:shadow-none ${
+        style={
+          compact && sheetPx != null
+            ? { height: sheetPx, bottom: sheetBottom }
+            : undefined
+        }
+        className={`z-20 flex min-h-0 flex-col border-ink/10 bg-foam max-lg:fixed max-lg:inset-x-0 max-lg:overflow-hidden max-lg:rounded-t-3xl max-lg:border-t max-lg:shadow-[0_-18px_40px_-24px_rgba(6,36,33,0.45)] lg:static lg:h-auto lg:w-[min(100%,24rem)] lg:shrink-0 lg:border-s lg:shadow-none ${
           sheetDragging ? "max-lg:transition-none" : "transition-[height] duration-300 ease-out"
-        } ${sheetPx != null ? "max-lg:h-[var(--sheet)]" : panelOpen ? "max-lg:h-[46%]" : "max-lg:h-[4.5rem]"}`}
+        } ${sheetPx != null ? "" : panelOpen ? "max-lg:bottom-18 max-lg:h-[46%]" : "max-lg:bottom-18 max-lg:h-[4.5rem]"}`}
       >
         <button
           type="button"
@@ -796,9 +1101,34 @@ export function AtlasMap({
           ) : null}
         </button>
         <div
+          ref={contentRef}
           dir={textDir}
-          className={`flex min-h-0 flex-1 flex-col ${panelOpen ? "" : "max-lg:pointer-events-none max-lg:invisible max-lg:h-0 max-lg:overflow-hidden"}`}
+          onPointerDown={onContentPointerDown}
+          onPointerMove={onContentPointerMove}
+          onPointerUp={onContentPointerUp}
+          onPointerCancel={onContentPointerUp}
+          onClickCapture={(event) => {
+            if (!ignoreClick.current) return;
+            ignoreClick.current = false;
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          className={`flex min-h-0 flex-1 flex-col max-lg:select-none ${panelOpen ? "" : "max-lg:pointer-events-none max-lg:invisible max-lg:h-0 max-lg:overflow-hidden"}`}
         >
+          {backStack.length ? (
+            <div className="shrink-0 border-b border-ink/10 px-2 py-1">
+              <button
+                type="button"
+                onClick={goBack}
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-palm"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5 rtl:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                  <path d="M15 6l-6 6 6 6" />
+                </svg>
+                {t("sheetBack")}
+              </button>
+            </div>
+          ) : null}
           {view === "areas" ? (
             <AreaList
               atlas={atlas}
@@ -828,16 +1158,11 @@ export function AtlasMap({
               onCurrencyFilter={setCurrencyFilter}
               aboutOpen={aboutOpen}
               onAbout={() => setAboutOpen((value) => !value)}
-              onBack={() => {
-                setAreaId(null);
-                setProjectId(null);
-              }}
-              onProject={(id) => {
-                setProjectId(id);
-                setBriefOpen(false);
-                setBeds(null);
-              }}
+              onBack={goAreas}
+              onCity={chooseCity}
+              onProject={openProject}
               onHover={setHoveredId}
+              community={community}
             />
           ) : null}
           {view === "project" && project && area ? (
@@ -850,11 +1175,17 @@ export function AtlasMap({
               briefOpen={briefOpen}
               onBeds={setBeds}
               onBrief={() => setBriefOpen((value) => !value)}
-              onBack={() => setProjectId(null)}
-              onAreas={() => {
-                setAreaId(null);
-                setProjectId(null);
-              }}
+              onBack={leaveProject}
+              onCity={chooseCity}
+              onAreas={goAreas}
+              voice={community[project.id] ?? null}
+            />
+          ) : null}
+          {view === "notes" ? (
+            <NotesPanel
+              notes={notesHere}
+              selectedId={selectedNoteId}
+              onSelect={setSelectedNoteId}
             />
           ) : null}
           {view === "search" ? (
@@ -875,8 +1206,26 @@ export function AtlasMap({
               atlas={atlas}
               locale={locale}
               points={drawPoints.length}
-              closed={drawClosed}
+              closed={drawClosed && drawMode !== "pin"}
               mode={drawMode}
+              sharePlace={sharePlace}
+              outside={
+                !sharePlace &&
+                ((drawMode === "pin" && drawPoints.length === 1) ||
+                  (drawClosed && drawMode !== "pin" && drawn.length >= 4))
+              }
+              onShared={(id) => {
+                setNoteTick((value) => value + 1);
+                setSelectedNoteId(id);
+                setLegend("notes");
+                setRail("areas");
+                setAreaId(null);
+                setProjectId(null);
+                const limits = sheetLimits();
+                setSnap("peek");
+                setPanelOpen(false);
+                setSheetPx(limits.peek);
+              }}
               onMode={(mode) => {
                 setDrawMode(mode);
                 setDrawPoints([]);
@@ -900,15 +1249,7 @@ export function AtlasMap({
                 }
                 setDrawClosed(true);
               }}
-              onProject={(id) => {
-                const next = atlas.projects.find((item) => item.id === id);
-                const home = atlas.areas.find((item) => item.id === next?.areaId);
-                if (!next || !home) return;
-                setCityId(home.cityId);
-                setAreaId(home.id);
-                setProjectId(next.id);
-                setBriefOpen(false);
-              }}
+              onProject={openProject}
             />
           ) : null}
         </div>
@@ -990,7 +1331,7 @@ function PanelChevron({ open }: { open: boolean }) {
       strokeWidth="1.8"
       aria-hidden
     >
-      <path d="M6 9l6 6 6-6" />
+      <path d="M6 15l6-6 6 6" />
     </svg>
   );
 }
@@ -1016,27 +1357,14 @@ function CurrencyFilterBar({
   onChange: (value: Currency | "all") => void;
 }) {
   const t = useTranslations("desk");
-  if (currencies.length <= 1 && !currencies.some((item) => item !== countryCurrency)) {
-    return null;
-  }
-  const options: (Currency | "all")[] = ["all", ...currencies];
+  if (currencies.length < 2) return null;
   return (
-    <div className="mt-3">
-      <p className="mb-1.5 text-[11px] text-mist">{t("currencyFilter")}</p>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {options.map((code) => (
-          <button
-            key={code}
-            type="button"
-            onClick={() => onChange(code)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs ${
-              value === code ? "bg-palm text-white" : "border border-ink/10 bg-white"
-            }`}
-          >
-            {code === "all" ? t("currencyAll") : code}
-          </button>
-        ))}
-      </div>
+    <div className="min-w-0" onPointerDown={(event) => event.stopPropagation()}>
+      <Select
+        value={value}
+        onChange={(next) => onChange(next === "all" ? "all" : (next as Currency))}
+        options={[{ value: "all", label: t("currencyAll") }, ...currencies.map((code) => ({ value: code, label: code }))]}
+      />
     </div>
   );
 }
@@ -1073,66 +1401,69 @@ function AreaList({
   const t = useTranslations("desk");
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-b border-ink/10 px-4 py-3 lg:py-4">
-        <h1 className="font-display text-xl lg:text-2xl">{t("areas")}</h1>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {(
-            [
-              ["ae", t("emirates")],
-              ["om", t("oman")],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onCountry(id)}
-              className={`min-h-11 rounded-full px-3 text-sm ${country === id ? "bg-palm text-white" : "bg-sand text-ink"}`}
-            >
-              {label}
-            </button>
-          ))}
+        <header data-sheet-drag="" className="shrink-0 border-b border-ink/10 px-3 py-2.5 max-lg:touch-pan-x sm:px-4 lg:touch-auto">
+        <div className="flex items-baseline justify-between gap-3">
+          <h1 className="min-w-0 truncate font-display text-xl">{t("areas")}</h1>
+          <p className="shrink-0 text-xs text-mist">
+            {areas.length} {t("areas")}
+          </p>
         </div>
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-          {cities.map((city) => (
-            <button
-              key={city.id}
-              type="button"
-              onClick={() => onCity(city.id)}
-              className={`min-h-11 shrink-0 rounded-full px-3 text-sm ${city.id === cityId ? "bg-palm text-white" : "border border-ink/10 bg-white"}`}
-            >
-              {pick(city.names, locale)}
-            </button>
-          ))}
+        <div className="mt-2 flex min-w-0 items-center gap-2">
+          <div className="flex h-13 shrink-0 rounded-lg bg-sand p-1" role="group" aria-label={t("areas")}>
+            {(
+              [
+                ["ae", t("emirates")],
+                ["om", t("oman")],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => onCountry(id)}
+                className={`h-full rounded-md px-2.5 text-sm ${country === id ? "bg-palm text-white" : "text-ink"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="min-w-0 flex-1" onPointerDown={(event) => event.stopPropagation()}>
+            <Select
+              value={cities.some((city) => city.id === cityId) ? cityId : ""}
+              onChange={onCity}
+              placeholder={t("areas")}
+              options={cities.map((city) => ({ value: city.id, label: pick(city.names, locale) }))}
+            />
+          </div>
+          {countryCurrencies.length > 1 ? (
+            <div className="w-[38%] min-w-0 max-w-36 shrink">
+              <CurrencyFilterBar
+                currencies={countryCurrencies}
+                value={currencyFilter}
+                countryCurrency={countryCurrency}
+                onChange={onCurrencyFilter}
+              />
+            </div>
+          ) : null}
         </div>
-        <CurrencyFilterBar
-          currencies={countryCurrencies}
-          value={currencyFilter}
-          countryCurrency={countryCurrency}
-          onChange={onCurrencyFilter}
-        />
-        <p className="mt-2 text-xs text-mist">
-          {areas.length} {t("areas")}
-        </p>
       </header>
-      <div className="grid flex-1 grid-cols-2 content-start gap-3 overflow-y-auto p-4">
+      <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-x-2 gap-y-3 overflow-y-auto p-3 sm:gap-3 sm:p-4">
         {areas.map((area) => {
           const stats = areaStats(atlas, area.id, currencyFilter);
           return (
-            <button key={area.id} type="button" onClick={() => onArea(area.id)} className="text-start">
+            <button key={area.id} type="button" onClick={() => onArea(area.id)} className="min-w-0 text-start">
               <span className="relative block aspect-[4/3] overflow-hidden rounded-2xl">
                 <img src={area.image || FALLBACK_IMAGE} alt="" className="h-full w-full object-cover" />
-                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2 py-2 text-sm font-medium text-white">
-                  {pick(area.names, locale)}
+                <span className="absolute end-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-xs font-medium text-ink">{stats.count}</span>
+              </span>
+              <span className="mt-1.5 line-clamp-2 text-sm font-medium leading-5 text-ink">{pick(area.names, locale)}</span>
+              {stats.min && stats.currency ? (
+                <span className="mt-0.5 block text-xs leading-4 text-mist">
+                  <bdi dir="ltr">{shortAmount(stats.min, stats.currency)}</bdi> {moneyUnit(stats.currency, locale)}
                 </span>
-              </span>
-              <span className="mt-1 block text-[11px] text-mist">
-                {stats.count}
-                {stats.min && stats.currency
-                  ? ` · ${shortAmount(stats.min, stats.currency)} ${moneyUnit(stats.currency, locale)}`
-                  : stats.mixed
-                    ? ` · ${t("currencyMixed")}`
-                    : ""}
-              </span>
+              ) : stats.mixed ? (
+                <span className="mt-0.5 block text-xs leading-4 text-mist">{t("currencyMixed")}</span>
+              ) : null}
             </button>
           );
         })}
@@ -1150,13 +1481,14 @@ function Crumbs({ items }: { items: { label: string; onClick?: () => void }[] })
           {item.onClick ? (
             <button
               type="button"
+              onPointerDown={(event) => event.stopPropagation()}
               onClick={item.onClick}
               className="shrink-0 text-mist underline-offset-4 transition hover:text-palm hover:underline"
             >
               {item.label}
             </button>
           ) : (
-            <span className="truncate font-medium text-ink">{item.label}</span>
+            <span className="min-w-0 break-words font-medium text-ink">{item.label}</span>
           )}
         </span>
       ))}
@@ -1176,8 +1508,10 @@ function AreaDetail({
   aboutOpen,
   onAbout,
   onBack,
+  onCity,
   onProject,
   onHover,
+  community = {},
 }: {
   atlas: Atlas;
   locale: string;
@@ -1190,20 +1524,23 @@ function AreaDetail({
   aboutOpen: boolean;
   onAbout: () => void;
   onBack: () => void;
+  onCity: (id: string) => void;
   onProject: (id: string) => void;
   onHover: (id: string | null) => void;
+  community?: Record<string, { handle: string; displayName: string }>;
 }) {
   const t = useTranslations("desk");
+  const circle = useTranslations("circle");
   const city = atlas.cities.find((item) => item.id === area.cityId);
   const stats = areaStats(atlas, area.id, currencyFilter);
   const statsCurrency = stats.currency ?? countryCurrency;
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <header className="sticky top-0 z-10 border-b border-ink/10 bg-foam px-4 py-3">
+      <header data-sheet-drag="" className="sticky top-0 z-10 border-b border-ink/10 bg-foam px-4 py-3 max-lg:touch-pan-x lg:touch-auto">
         <Crumbs
           items={[
             { label: t("areas"), onClick: onBack },
-            ...(city ? [{ label: pick(city.names, locale), onClick: onBack }] : []),
+            ...(city ? [{ label: pick(city.names, locale), onClick: () => onCity(city.id) }] : []),
             { label: pick(area.names, locale) },
           ]}
         />
@@ -1231,13 +1568,13 @@ function AreaDetail({
               stats.mixed ? t("currencyMixed") : stats.avg ? shortAmount(stats.avg, statsCurrency) : "—",
             ],
           ].map(([label, value]) => (
-            <div key={label} className="rounded-2xl bg-sand px-2 py-3">
-              <dt className="text-[11px] text-mist">{label}</dt>
-              <dd className="mt-1 text-sm font-semibold">
-                {value}{" "}
+            <div key={label} className="min-w-0 rounded-2xl bg-sand px-2 py-3">
+              <dt className="text-xs leading-4 text-mist">{label}</dt>
+              <dd className="mt-1 break-words text-sm font-semibold">
+                <bdi dir="ltr">{value}</bdi>
                 {value === "—" || value === t("currencyMixed") || label === t("activeProjects") || stats.mixed
                   ? ""
-                  : moneyUnit(statsCurrency, locale)}
+                  : ` ${moneyUnit(statsCurrency, locale)}`}
               </dd>
             </div>
           ))}
@@ -1258,6 +1595,7 @@ function AreaDetail({
           <ul className="mt-2 space-y-1">
             {projects.map((item) => {
               const developer = atlas.developers.find((entry) => entry.id === item.developerId);
+              const voice = community[item.id];
               return (
                 <li key={item.id}>
                   <button
@@ -1273,10 +1611,12 @@ function AreaDetail({
                     <span className="min-w-0">
                       <span className="block truncate font-medium">{pick(item.names, locale)}</span>
                       <span className="block truncate text-xs text-mist">
-                        {developer ? pick(developer.names, locale) : ""}
+                        {voice ? circle("communityByline", { name: voice.displayName }) : developer ? pick(developer.names, locale) : ""}
                       </span>
                       <span className="mt-1 block text-sm">
-                        {shortAmount(item.startPrice, item.currency)} {moneyUnit(item.currency, locale)}
+                        <bdi dir="ltr">
+                          {shortAmount(item.startPrice, item.currency)} {moneyUnit(item.currency, locale)}
+                        </bdi>
                       </span>
                     </span>
                   </button>
@@ -1300,7 +1640,9 @@ function ProjectDetail({
   onBeds,
   onBrief,
   onBack,
+  onCity,
   onAreas,
+  voice = null,
 }: {
   atlas: Atlas;
   locale: string;
@@ -1311,9 +1653,12 @@ function ProjectDetail({
   onBeds: (beds: Beds) => void;
   onBrief: () => void;
   onBack: () => void;
+  onCity: (id: string) => void;
   onAreas: () => void;
+  voice?: { handle: string; displayName: string } | null;
 }) {
   const t = useTranslations("desk");
+  const circle = useTranslations("circle");
   const city = atlas.cities.find((item) => item.id === area.cityId);
   const developer = atlas.developers.find((item) => item.id === project.developerId);
   const unit = project.units.find((item) => item.beds === beds) ?? project.units[0];
@@ -1322,30 +1667,40 @@ function ProjectDetail({
   const kind =
     project.kind === "villa" ? t("villa") : project.kind === "townhouse" ? t("townhouse") : t("apartment");
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <header className="sticky top-0 z-10 border-b border-ink/10 bg-foam px-4 py-3">
+    <div className="@container min-h-0 min-w-0 flex-1 overflow-y-auto">
+      <header data-sheet-drag="" className="sticky top-0 z-10 min-w-0 border-b border-ink/10 bg-foam px-4 py-3 max-lg:touch-pan-x lg:touch-auto">
         <Crumbs
           items={[
             { label: t("areas"), onClick: onAreas },
-            ...(city ? [{ label: pick(city.names, locale), onClick: onAreas }] : []),
+            ...(city ? [{ label: pick(city.names, locale), onClick: () => onCity(city.id) }] : []),
             { label: pick(area.names, locale), onClick: onBack },
             { label: pick(project.names, locale) },
           ]}
         />
-        <h1 className="mt-2 font-display text-2xl leading-tight">{pick(project.names, locale)}</h1>
+        <h1 className="mt-2 break-words font-display text-xl leading-tight @min-[32rem]:text-2xl">{pick(project.names, locale)}</h1>
       </header>
-      <div className="space-y-4 p-4">
+      <div className="min-w-0 space-y-4 p-4">
         <img src={project.image || FALLBACK_IMAGE} alt="" className="h-44 w-full rounded-3xl object-cover" />
-        <p className="text-sm text-mist">{developer ? pick(developer.names, locale) : ""}</p>
+        {voice ? (
+          <p className="text-sm leading-6 text-ink">
+            {circle("communityMark")}{" "}
+            <Link href={`/majlis/${voice.handle}`} className="font-semibold text-palm">
+              {voice.displayName}
+            </Link>{" "}
+            {circle("communityDid")}
+          </p>
+        ) : (
+          <p className="text-sm text-mist">{developer ? pick(developer.names, locale) : ""}</p>
+        )}
         <p className="text-sm">
           {city ? pick(city.names, locale) : ""}، {pick(area.names, locale)}
         </p>
-        <dl className="grid grid-cols-2 gap-2 text-sm">
+        <dl className="grid grid-cols-1 gap-2 text-sm @min-[32rem]:grid-cols-2">
           {[
             [
               t("startPrice"),
               project.startPrice > 0
-                ? `${shortAmount(project.startPrice, currency)} ${moneyUnit(currency, locale)}`
+                ? `${shortAmount(project.startPrice, currency)}\u00a0${moneyUnit(currency, locale)}`
                 : t("onRequest"),
             ],
             [t("kind"), kind],
@@ -1353,12 +1708,14 @@ function ProjectDetail({
               t("size"),
               project.sizeMax > 0 ? `${project.sizeMin}–${project.sizeMax} ${t("sqft")}` : t("onRequest"),
             ],
-            [t("handover"), project.handover],
+            [t("handover"), project.handover || t("onRequest")],
             [t("unitCount"), String(project.unitCount)],
           ].map(([label, value]) => (
-            <div key={label} className="rounded-2xl bg-sand px-3 py-3">
-              <dt className="text-[11px] text-mist">{label}</dt>
-              <dd className="mt-1 font-medium">{value}</dd>
+            <div key={label} className="min-w-0 rounded-2xl bg-sand px-3 py-3">
+              <dt className="text-xs text-mist">{label}</dt>
+              <dd className="mt-1 break-words font-medium">
+                {label === t("startPrice") || label === t("size") ? <bdi dir="ltr">{value}</bdi> : value}
+              </dd>
             </div>
           ))}
         </dl>
@@ -1450,7 +1807,7 @@ function SearchPanel({
   const t = useTranslations("desk");
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-b border-ink/10 px-4 py-4">
+      <header data-sheet-drag="" className="border-b border-ink/10 px-4 py-4 max-lg:touch-pan-x lg:touch-auto">
         <h1 className="font-display text-2xl">{t("search")}</h1>
         <input
           value={query}
@@ -1514,12 +1871,68 @@ function SearchPanel({
   );
 }
 
+function NotesPanel({
+  notes,
+  selectedId,
+  onSelect,
+}: {
+  notes: MapNote[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const t = useTranslations("desk");
+  const selected = notes.find((note) => note.id === selectedId) ?? notes[0] ?? null;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <header data-sheet-drag="" className="border-b border-ink/10 px-4 py-4 max-lg:touch-pan-x lg:touch-auto">
+        <h1 className="font-display text-2xl">{t("legendNotes")}</h1>
+        <p className="mt-2 text-sm leading-7 text-mist">{notes.length ? t("legendCaptionNotes") : t("notesEmpty")}</p>
+      </header>
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
+        {selected ? (
+          <article className="rounded-2xl border border-ink/10 bg-white p-4">
+            <p className="text-sm font-semibold text-ink">{selected.author.displayName}</p>
+            <p className="mt-1 text-xs text-mist">
+              <bdi dir="ltr">@{selected.author.handle}</bdi>
+              <span aria-hidden> · </span>
+              {selected.place.kind === "point" ? t("modePin") : t("modeRange")}
+            </p>
+            <p className="mt-3 text-sm leading-7 text-ink">{selected.body}</p>
+            <Link href={`/majlis/post/${selected.id}`} className="mt-3 inline-flex text-sm font-semibold text-palm">
+              {t("openInCircle")}
+            </Link>
+          </article>
+        ) : null}
+        {notes.length > 1 ? (
+          <ul className="space-y-2">
+            {notes.map((note) => (
+              <li key={note.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(note.id)}
+                  className={`w-full rounded-2xl px-3 py-3 text-start text-sm ${note.id === selected?.id ? "bg-sand" : "bg-white"}`}
+                >
+                  <span className="block font-medium">{note.author.displayName}</span>
+                  <span className="line-clamp-2 text-mist">{note.body}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function DrawPanel({
   atlas,
   locale,
   points,
   closed,
   mode,
+  sharePlace,
+  outside,
+  onShared,
   onMode,
   inside,
   onNew,
@@ -1532,6 +1945,9 @@ function DrawPanel({
   points: number;
   closed: boolean;
   mode: DrawMode;
+  sharePlace: CirclePlace | null;
+  outside: boolean;
+  onShared: (id: string) => void;
   onMode: (mode: DrawMode) => void;
   inside: Project[];
   onNew: () => void;
@@ -1542,23 +1958,35 @@ function DrawPanel({
   const t = useTranslations("desk");
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-b border-ink/10 px-4 py-4">
+      <header data-sheet-drag="" className="border-b border-ink/10 px-4 py-4 max-lg:touch-pan-x lg:touch-auto">
         <h1 className="font-display text-2xl">{t("draw")}</h1>
         <p className="mt-2 text-sm leading-7 text-mist">{t("drawHint")}</p>
       </header>
       <div className="space-y-3 overflow-y-auto p-4">
         <div className="grid grid-cols-2 gap-2">
-          {(["corner", "smooth", "round", "hand"] as const).map((item) => (
+          {(["pin", "corner", "smooth", "round", "hand"] as const).map((item) => (
             <button
               key={item}
               type="button"
               onClick={() => onMode(item)}
-              className={`rounded-lg px-3 py-2 text-sm ${mode === item ? "bg-palm-deep text-white" : "border border-ink/15 bg-white"}`}
+              className={`rounded-lg px-3 py-2 text-sm ${item === "pin" ? "col-span-2" : ""} ${mode === item ? "bg-palm-deep text-white" : "border border-ink/15 bg-white"}`}
             >
-              {t(item === "corner" ? "modeCorner" : item === "smooth" ? "modeSmooth" : item === "round" ? "modeRound" : "modeHand")}
+              {t(
+                item === "pin"
+                  ? "modePin"
+                  : item === "corner"
+                    ? "modeCorner"
+                    : item === "smooth"
+                      ? "modeSmooth"
+                      : item === "round"
+                        ? "modeRound"
+                        : "modeHand",
+              )}
             </button>
           ))}
         </div>
+        {sharePlace ? <SharePlace locale={locale} place={sharePlace} onShared={onShared} /> : null}
+        {outside ? <p className="text-sm leading-6 text-ink">{t("placeOutside")}</p> : null}
         <button type="button" onClick={onNew} className="w-full rounded-lg bg-ink px-3 py-3 text-sm text-paper">
           {t("drawNew")}
         </button>

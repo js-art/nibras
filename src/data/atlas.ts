@@ -159,13 +159,18 @@ export type Atlas = {
   suggestions: Suggestion[];
 };
 
-export const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1600&q=70";
+/** Default catalogue photo, served from this site. `scripts/fetch-catalogue-photos.mjs` fills the file at build. */
+export function hostedImage(value: string) {
+  const match = value.match(/images\.unsplash\.com\/(photo-[\w-]+)/);
+  if (!match) return value;
+  return `/catalogue/${match[1]}.jpg`;
+}
+
+const photo = (id: string) => `/catalogue/${id}.jpg`;
+
+export const FALLBACK_IMAGE = photo("photo-1512453979798-5ea266f8880c");
 
 const tx = (en: string, ar: string, fa: string): LocaleText => ({ en, ar, fa });
-
-const photo = (id: string) =>
-  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1600&q=70`;
 
 function ring(lng: number, lat: number, dx: number, dy: number, profile = 0): LngLat[] {
   return neighborhood(lng, lat, dx, dy, profile);
@@ -528,7 +533,7 @@ export function normalizeAtlas(input: unknown): Atlas | null {
       color: /^#[0-9a-fA-F]{6}$/.test(String(area.color)) ? String(area.color) : "#e7a0a0",
       center: boundary.length ? centroid(boundary) : point(area.center, cities[0].center),
       ring: boundary,
-      image: String(area.image ?? "").slice(0, 500),
+      image: hostedImage(String(area.image ?? "").slice(0, 500)),
       names: text(area.names),
       about: text(area.about),
       updatedAt: stamp(area.updatedAt),
@@ -546,7 +551,7 @@ export function normalizeAtlas(input: unknown): Atlas | null {
       names: text(developer.names),
       about: text(developer.about),
       delivered: Math.max(0, Math.round(num(developer.delivered))),
-      image: String(developer.image ?? "").slice(0, 500),
+      image: hostedImage(String(developer.image ?? "").slice(0, 500)),
       updatedAt: stamp(developer.updatedAt),
     });
   }
@@ -605,7 +610,7 @@ export function normalizeAtlas(input: unknown): Atlas | null {
       currency: parseCurrency(project.currency, fallbackCurrency),
       point: point(project.point, area.center),
       ring: ringOf(project.ring),
-      image: String(project.image ?? "").slice(0, 500),
+      image: hostedImage(String(project.image ?? "").slice(0, 500)),
       names: text(project.names),
       about: text(project.about),
       whatsapp: String(project.whatsapp ?? "").replace(/[^\d+]/g, "").slice(0, 18),
@@ -1011,8 +1016,8 @@ const rawSeedAtlas = {
       id: "al-mouj",
       cityId: "muscat",
       color: "#85c1e9",
-      center: [58.365, 23.628],
-      ring: ring(58.365, 23.628, 0.018, 0.012, 13),
+      center: [58.266, 23.628],
+      ring: ring(58.266, 23.628, 0.018, 0.012, 13),
       image: photo("photo-1469796466635-455ede028aca"),
       names: tx("Al Mouj", "الموج", "الموج"),
       about: tx(
@@ -1396,7 +1401,7 @@ const rawSeedAtlas = {
       sizeMin: 540,
       sizeMax: 1800,
       unitCount: 210,
-      point: [58.368, 23.63],
+      point: [58.269, 23.63],
       image: photo("photo-1469796466635-455ede028aca"),
       names: tx("Bahr House", "بيت البحر", "خانهٔ بحر"),
       about: tx(
@@ -1422,7 +1427,7 @@ const rawSeedAtlas = {
       sizeMin: 480,
       sizeMax: 1400,
       unitCount: 160,
-      point: [58.36, 23.624],
+      point: [58.261, 23.624],
       image: photo("photo-1449824913935-59a10b8d2000"),
       names: tx("Mouj Walk", "ممشى الموج", "پیاده‌راه الموج"),
       about: tx(
