@@ -879,7 +879,6 @@ export function AtlasMap({
     setBriefOpen(false);
     setAboutOpen(false);
     setPanelOpen(true);
-    setSnap("half");
   }
 
   function goAreas() {
